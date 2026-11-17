@@ -165,7 +165,12 @@
   </div>
 
   <script>
-    const DEFAULT_PAIRS = ["GBP/AUD", "GBP/JPY", "USD/JPY", "EUR/USD", "EUR/JPY", "AUD/JPY"];
+    
+    const DEFAULT_PAIRS = [
+      "GBP/AUD", "USD/JPY", "EUR/USD",
+      "GBP/JPY", "EUR/JPY", "AUD/USD",
+      "EUR/AUD", "AUD/JPY", "GBP/USD"
+    ];
     let pairs = JSON.parse(localStorage.getItem("qqe_glaz_pairs")) || DEFAULT_PAIRS;
 
     function playBeep() {
