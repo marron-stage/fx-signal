@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>日足 QQE (Glaz版) シグナル監視</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --buy: #10b981;
+      --sell: #ef4444;
+      --accent: #38bdf8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .container { max-width: 760px; margin: 0 auto; }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    h1 { font-size: 1.2rem; margin: 0; }
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    input, button {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+    }
+    button { cursor: pointer; font-weight: 600; }
+    button.primary { background: var(--accent); color: #0f172a; border: none; }
+    button:active { opacity: 0.85; }
+    .banner {
+      padding: 14px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      font-weight: bold;
+      text-align: center;
+      background: var(--card);
+      border: 1px solid var(--border);
+    }
+    .banner.alert {
+      background: rgba(250, 204, 21, 0.15);
+      border-color: #facc15;
+      color: #fef08a;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(225px, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .card.flipped {
+      border: 2px solid #facc15;
+      box-shadow: 0 0 14px rgba(250, 204, 21, 0.25);
+    }
+    .pair-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .pair-name { font-size: 1.1rem; font-weight: 700; }
+    .del-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 2px 6px;
+      font-size: 0.85rem;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .badge.buy { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .badge.sell { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+    .flip-tag {
+      display: inline-block;
+      background: #facc15;
+      color: #0f172a;
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 6px;
+    }
+    .lines {
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+    .green-val { color: #34d399; font-weight: 700; }
+    .red-val { color: #f87171; font-weight: 700; }
+    .meta { font-size: 0.78rem; color: var(--muted); line-height: 1.45; }
+    .settings {
+      margin-top: 20px;
+      padding: 12px;
+      background: var(--card);
+      border-radius: 10px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .settings input { width: 68px; padding: 4px 6px; margin: 4px 8px 4px 2px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📊 日足 QQE (Glaz版) シグナル監視</h1>
+      <button class="primary" onclick="checkAll(true)">再チェック（音テスト）</button>
+    </header>
+
+    <div id="statusBanner" class="banner">日足データを取得中...</div>
+
+    <div class="controls">
+      <input id="pairInput" type="text" placeholder="例: GBP/AUD, USD/JPY" />
+      <button onclick="addPair()">＋ 通貨追加</button>
+    </div>
+
+    <div id="cards" class="grid"></div>
+
+    <div class="settings">
+      <strong>Glaz QQE パラメータ:</strong><br>
+      Fast <input id="fastParam" type="number" step="0.0001" value="2.6180" />
+      Slow <input id="slowParam" type="number" step="0.0001" value="4.2360" />
+      RSI <input id="rsiParam" type="number" value="14" />
+      SF <input id="sfParam" type="number" value="2" />
+      <button onclick="checkAll(false)">反映</button>
+      <div style="margin-top: 6px;">
+        ※緑(FastAtrRSI) ＞ 赤(SlowAtrRSI) で買い、赤 ＞ 緑 で売り判定。前日と上下が入れ替わると「転換！」が出ます。
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const DEFAULT_PAIRS = ["GBP/AUD", "GBP/JPY", "USD/JPY", "EUR/USD", "EUR/JPY", "AUD/JPY"];
+    let pairs = JSON.parse(localStorage.getItem("qqe_glaz_pairs")) || DEFAULT_PAIRS;
+
+    function playBeep() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.setValueAtTime(1174.66, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.5);
+      } catch (e) {}
+    }
+
+    // Pine Scriptの rsi(close, length) と同等 (Wilder's RMAベース)
+    function pineRsi(closes, length) {
+      const n = closes.length;
+      const rsi = new Array(n).fill(50);
+      if (n <= length) return rsi;
+
+      let gainSum = 0;
+      let lossSum = 0;
+      for (let i = 1; i <= length; i++) {
+        const diff = closes[i] - closes[i - 1];
+        if (diff > 0) gainSum += diff;
+        else lossSum -= diff;
+      }
+      let avgGain = gainSum / length;
+      let avgLoss = lossSum / length;
+      rsi[length] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
+
+      for (let i = length + 1; i < n; i++) {
+        const diff = closes[i] - closes[i - 1];
+        const g = diff > 0 ? diff : 0;
+        const l = diff < 0 ? -diff : 0;
+        avgGain = (avgGain * (length - 1) + g) / length;
+        avgLoss = (avgLoss * (length - 1) + l) / length;
+        rsi[i] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
+      }
+      return rsi;
+    }
+
+    // Pine Scriptの ema(src, length)
+    function pineEma(values, length) {
+      const k = 2 / (length + 1);
+      const out = [values[0]];
+      for (let i = 1; i < values.length; i++) {
+        out.push(values[i] * k + out[i - 1] * (1 - k));
+      }
+      return out;
+    }
+
+    // Glaz版の WiMA(src, length) => (src + nz(MA_s[1] * (length - 1))) / length
+    function wima(values, length) {
+      const out = new Array(values.length).fill(0);
+      out[0] = values[0] / length;
+      for (let i = 1; i < values.length; i++) {
+        out[i] = (values[i] + out[i - 1] * (length - 1)) / length;
+      }
+      return out;
+    }
+
+    // Glaz Metastock Version of QQE 完全再現
+    function calcGlazQQE(closes, fast = 2.618, slow = 4.236, rsiLen = 14, sf = 2) {
+      const n = closes.length;
+      const rawRsi = pineRsi(closes, rsiLen);
+      const rsIndex = pineEma(rawRsi, sf);
+
+      const tr = new Array(n).fill(0);
+      for (let i = 1; i < n; i++) {
+        const th = rsIndex[i - 1] > rsIndex[i] ? rsIndex[i - 1] : rsIndex[i];
+        const tl = rsIndex[i - 1] < rsIndex[i] ? rsIndex[i - 1] : rsIndex[i];
+        tr[i] = th - tl;
+      }
+
+      const atrRsi = wima(tr, 14);
+      const smoothedAtrRsi = wima(atrRsi, 14);
+
+      const deltaFast = smoothedAtrRsi.map(v => v * fast);
+      const deltaSlow = smoothedAtrRsi.map(v => v * slow);
+
+      const longband = new Array(n).fill(0);
+      const shortband = new Array(n).fill(0);
+      const trend = new Array(n).fill(1);
+      const fastTL = new Array(n).fill(0);
+
+      const longband1 = new Array(n).fill(0);
+      const shortband1 = new Array(n).fill(0);
+      const trend1 = new Array(n).fill(1);
+      const slowTL = new Array(n).fill(0);
+
+      for (let i = 1; i < n; i++) {
+        // Fast (緑の線)
+        const newShort = rsIndex[i] + deltaFast[i];
+        const newLong = rsIndex[i] - deltaFast[i];
+
+        longband[i] = (rsIndex[i - 1] > longband[i - 1] && rsIndex[i] > longband[i - 1])
+          ? Math.max(longband[i - 1], newLong)
+          : newLong;
+        shortband[i] = (rsIndex[i - 1] < shortband[i - 1] && rsIndex[i] < shortband[i - 1])
+          ? Math.min(shortband[i - 1], newShort)
+          : newShort;
+
+        const crossUpFast = rsIndex[i - 1] <= shortband[i - 1] && rsIndex[i] > shortband[i - 1];
+        const crossDownFast = longband[i - 1] <= rsIndex[i - 1] && longband[i - 1] > rsIndex[i];
+        trend[i] = crossUpFast ? 1 : (crossDownFast ? -1 : trend[i - 1]);
+        fastTL[i] = trend[i] === 1 ? longband[i] : shortband[i];
+
+        // Slow (赤の線)
+        const newShort1 = rsIndex[i] + deltaSlow[i];
+        const newLong1 = rsIndex[i] - deltaSlow[i];
+
+        longband1[i] = (rsIndex[i - 1] > longband1[i - 1] && rsIndex[i] > longband1[i - 1])
+          ? Math.max(longband1[i - 1], newLong1)
+          : newLong1;
+        shortband1[i] = (rsIndex[i - 1] < shortband1[i - 1] && rsIndex[i] < shortband1[i - 1])
+          ? Math.min(shortband1[i - 1], newShort1)
+          : newShort1;
+
+        const crossUpSlow = rsIndex[i - 1] <= shortband1[i - 1] && rsIndex[i] > shortband1[i - 1];
+        const crossDownSlow = longband1[i - 1] <= rsIndex[i - 1] && longband1[i - 1] > rsIndex[i];
+        trend1[i] = crossUpSlow ? 1 : (crossDownSlow ? -1 : trend1[i - 1]);
+        slowTL[i] = trend1[i] === 1 ? longband1[i] : shortband1[i];
+      }
+
+      const last = n - 1;
+      const prev = n - 2;
+
+      // 緑(fastTL)が赤(slowTL)より上ならBUY、赤が緑より上ならSELL
+      const isBuyNow = fastTL[last] > slowTL[last];
+      const wasBuyPrev = fastTL[prev] > slowTL[prev];
+
+      return {
+        isBuy: isBuyNow,
+        flipped: isBuyNow !== wasBuyPrev,
+        greenFast: fastTL[last].toFixed(2),
+        redSlow: slowTL[last].toFixed(2),
+        yellowRsi: rsIndex[last].toFixed(2),
+        close: closes[last]
+      };
+    }
+
+    async function fetchDailyCloses(base, quote) {
+      const end = new Date();
+      const start = new Date();
+      start.setDate(end.getDate() - 180); // WiMA収束用に約半年分取得
+      const fmt = d => d.toISOString().split("T")[0];
+      const url = `https://api.frankfurter.dev/v1/${fmt(start)}..${fmt(end)}?base=${base}&symbols=${quote}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("取得失敗");
+      const data = await res.json();
+      const dates = Object.keys(data.rates).sort();
+      return {
+        dates,
+        closes: dates.map(d => data.rates[d][quote])
+      };
+    }
+
+    async function checkAll(userTriggered = false) {
+      const banner = document.getElementById("statusBanner");
+      const grid = document.getElementById("cards");
+      banner.className = "banner";
+      banner.textContent = "各通貨の日足データをチェック中...";
+      grid.innerHTML = "";
+
+      const fast = Number(document.getElementById("fastParam").value) || 2.618;
+      const slow = Number(document.getElementById("slowParam").value) || 4.236;
+      const rsiLen = Number(document.getElementById("rsiParam").value) || 14;
+      const sf = Number(document.getElementById("sfParam").value) || 2;
+
+      const results = [];
+      for (const pair of pairs) {
+        const [base, quote] = pair.split("/");
+        try {
+          const { dates, closes } = await fetchDailyCloses(base, quote);
+          const qqe = calcGlazQQE(closes, fast, slow, rsiLen, sf);
+          results.push({ pair, lastDate: dates[dates.length - 1], ...qqe });
+        } catch (err) {
+          results.push({ pair, error: true });
+        }
+      }
+
+      // 緑と赤が入れ替わった通貨を一番上に並べる
+      results.sort((a, b) => (b.flipped ? 1 : 0) - (a.flipped ? 1 : 0));
+
+      const flippedPairs = results.filter(r => !r.error && r.flipped);
+      if (flippedPairs.length > 0) {
+        banner.className = "banner alert";
+        banner.textContent = `🔔 シグナル転換あり: ${flippedPairs.map(p => p.pair).join(", ")}`;
+        if (userTriggered) playBeep();
+      } else {
+        banner.textContent = "✅ 本日の日足では緑・赤の入れ替わりはありません";
+      }
+
+      for (const r of results) {
+        const card = document.createElement("div");
+        card.className = "card" + (r.flipped ? " flipped" : "");
+        if (r.error) {
+          card.innerHTML = `
+            <div class="pair-row">
+              <span class="pair-name">${r.pair}</span>
+              <button class="del-btn" onclick="removePair('${r.pair}')">✕</button>
+            </div>
+            <div class="meta">データ取得エラー（通貨コードを確認）</div>
+          `;
+        } else {
+          card.innerHTML = `
+            <div class="pair-row">
+              <span class="pair-name">${r.pair}${r.flipped ? '<span class="flip-tag">転換！</span>' : ""}</span>
+              <button class="del-btn" onclick="removePair('${r.pair}')">✕</button>
+            </div>
+            <div>
+              <span class="badge ${r.isBuy ? "buy" : "sell"}">
+                ${r.isBuy ? "▲ BUY（緑が上）" : "▼ SELL（赤が上）"}
+              </span>
+            </div>
+            <div class="lines">
+              🟢 緑 (Fast): <span class="green-val">${r.greenFast}</span><br>
+              🔴 赤 (Slow): <span class="red-val">${r.redSlow}</span>
+            </div>
+            <div class="meta">
+              終値: ${r.close} / 確定日: ${r.lastDate}
+            </div>
+          `;
+        }
+        grid.appendChild(card);
+      }
+    }
+
+    function addPair() {
+      const input = document.getElementById("pairInput");
+      const raw = input.value.trim().toUpperCase().replace(/[^A-Z]/g, "");
+      if (raw.length !== 6) {
+        alert("6文字の通貨ペアを入力してください（例: GBP/AUD または GBPAUD）");
+        return;
+      }
+      const formatted = `${raw.slice(0, 3)}/${raw.slice(3, 6)}`;
+      if (!pairs.includes(formatted)) {
+        pairs.push(formatted);
+        localStorage.setItem("qqe_glaz_pairs", JSON.stringify(pairs));
+      }
+      input.value = "";
+      checkAll(false);
+    }
+
+    function removePair(pair) {
+      pairs = pairs.filter(p => p !== pair);
+      localStorage.setItem("qqe_glaz_pairs", JSON.stringify(pairs));
+      checkAll(false);
+    }
+
+    checkAll(false);
+  </script>
+</body>
+</html>
