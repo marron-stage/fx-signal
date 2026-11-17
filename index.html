@@ -67,6 +67,7 @@
       background: var(--card);
       border: 1px solid var(--border);
       font-size: 0.92rem;
+      line-height: 1.5;
     }
     .banner.alert {
       background: rgba(250, 204, 21, 0.15);
@@ -253,14 +254,12 @@
     ];
 
     let pairs = JSON.parse(localStorage.getItem("qqe_glaz_pairs_v2")) || DEFAULT_PAIRS;
-    // positions: { "GBP/AUD": { side: "BUY"|"SELL", entryPrice: 1.9850, entryDate: "2026-11-18", lot: 1000 } }
     let positions = JSON.parse(localStorage.getItem("qqe_positions")) || {};
-    // history: [ { id, pair, side, entryPrice, entryDate, exitPrice, exitDate, pips, profitJpy, lot } ]
     let history = JSON.parse(localStorage.getItem("qqe_history")) || [];
     let defaultLot = Number(localStorage.getItem("qqe_lot")) || 1000;
     document.getElementById("lotSelect").value = String(defaultLot);
 
-    let latestRates = {}; // 通貨ごとの最新終値と日付を保持
+    let latestRates = {};
 
     function saveLot() {
       defaultLot = Number(document.getElementById("lotSelect").value) || 1000;
@@ -280,14 +279,12 @@
       return `${y}-${m}-${d}`;
     }
 
-    // pips と 円換算損益の計算
     function calcPnL(pair, side, entryPrice, exitPrice, lot) {
       const isJpyQuote = pair.endsWith("/JPY");
       const pipUnit = isJpyQuote ? 0.01 : 0.0001;
       const diff = side === "BUY" ? (exitPrice - entryPrice) : (entryPrice - exitPrice);
       const pips = diff / pipUnit;
 
-      // 円換算（クロス円ならそのまま、外貨ストレートならUSD/JPYまたはAUD/JPYレートで概算換算）
       let jpyRate = 1;
       if (!isJpyQuote) {
         const quote = pair.split("/")[1];
@@ -304,7 +301,6 @@
       return { pips: Number(pips.toFixed(1)), profitJpy };
     }
 
-    // 新規エントリー
     function openPosition(pair, side) {
       const suggested = latestRates[pair] ? latestRates[pair].close : "";
       const input = prompt(`${pair} の ${side} エントリー価格を入力してください（そのままOKで終値採用）:`, suggested);
@@ -324,7 +320,6 @@
       checkAll();
     }
 
-    // 決済のみ
     function closePosition(pair) {
       const pos = positions[pair];
       if (!pos) return;
@@ -354,7 +349,6 @@
       checkAll();
     }
 
-    // ドテン決済＆反対売買エントリー
     function dotenPosition(pair, newSide) {
       const pos = positions[pair];
       if (!pos) return openPosition(pair, newSide);
@@ -453,7 +447,6 @@
       }).join("");
     }
 
-    // Pine Script互換計算関数群
     function pineRsi(closes, length) {
       const n = closes.length;
       const rsi = new Array(n).fill(50);
@@ -548,12 +541,13 @@
     }
 
     async function fetchDailyCloses(base, quote) {
-      const end = new Date();
-      const start = new Date();
-      start.setDate(end.getDate() - 180);
+      // 日本時間基準で「明日」までを終了日にし、最新確定日足を確実に取得する
+      const end = new Date(Date.now() + 9 * 60 * 60 * 1000 + 24 * 60 * 60 * 1000);
+      const start = new Date(end.getTime() - 180 * 24 * 60 * 60 * 1000);
       const fmt = d => d.toISOString().split("T")[0];
-      const url = `https://api.frankfurter.dev/v1/${fmt(start)}..${fmt(end)}?base=${base}&symbols=${quote}`;
-      const res = await fetch(url);
+      // キャッシュ回避用のタイムスタンプを付与
+      const url = `https://api.frankfurter.dev/v1/${fmt(start)}..${fmt(end)}?base=${base}&symbols=${quote}&_=${Date.now()}`;
+      const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error("取得失敗");
       const data = await res.json();
       const dates = Object.keys(data.rates).sort();
@@ -567,7 +561,7 @@
       const banner = document.getElementById("statusBanner");
       const grid = document.getElementById("cards");
       banner.className = "banner";
-      banner.textContent = "各通貨の日足データをチェック中...";
+      banner.textContent = "各通貨の最新日足データを取得中...";
       grid.innerHTML = "";
 
       const fast = Number(document.getElementById("fastParam").value) || 2.618;
@@ -589,7 +583,6 @@
         }
       }
 
-      // ドテン要対応（保有と逆サイン）や新規転換を優先して上に並べる
       results.sort((a, b) => {
         const aNeedDoten = !a.error && positions[a.pair] && ((positions[a.pair].side === "BUY") !== a.isBuy);
         const bNeedDoten = !b.error && positions[b.pair] && ((positions[b.pair].side === "BUY") !== b.isBuy);
@@ -597,12 +590,15 @@
         return (b.flipped ? 1 : 0) - (a.flipped ? 1 : 0);
       });
 
+      const validResult = results.find(r => !r.error);
+      const dataDateLabel = validResult ? `（最新確定足: ${validResult.lastDate}）` : "";
+
       const flippedPairs = results.filter(r => !r.error && r.flipped);
       if (flippedPairs.length > 0) {
         banner.className = "banner alert";
-        banner.textContent = `🔔 シグナル転換あり: ${flippedPairs.map(p => p.pair).join(", ")}`;
+        banner.innerHTML = `🔔 シグナル転換あり: ${flippedPairs.map(p => p.pair).join(", ")}<br><span class="meta">${dataDateLabel}</span>`;
       } else {
-        banner.textContent = "✅ 本日の日足では新規の緑・赤入れ替わりはありません";
+        banner.innerHTML = `✅ 新規の緑・赤入れ替わりはありません<br><span class="meta">${dataDateLabel}</span>`;
       }
 
       for (const r of results) {
