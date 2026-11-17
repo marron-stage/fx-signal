@@ -3,17 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>日足 QQE (Glaz版) シグナル監視</title>
+  <title>日足 QQE監視 & トレード記録</title>
   <style>
     :root {
       --bg: #0f172a;
       --card: #1e293b;
+      --card-sub: #0f172a;
       --border: #334155;
       --text: #f8fafc;
       --muted: #94a3b8;
       --buy: #10b981;
       --sell: #ef4444;
       --accent: #38bdf8;
+      --warn: #facc15;
     }
     * { box-sizing: border-box; }
     body {
@@ -23,181 +25,440 @@
       background: var(--bg);
       color: var(--text);
     }
-    .container { max-width: 760px; margin: 0 auto; }
+    .container { max-width: 860px; margin: 0 auto; }
     header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
       gap: 10px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
     h1 { font-size: 1.2rem; margin: 0; }
+    h2 { font-size: 1.05rem; margin: 24px 0 10px; border-left: 4px solid var(--accent); padding-left: 8px; }
     .controls {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
+      align-items: center;
     }
-    input, button {
+    input, select, button {
       background: var(--card);
       color: var(--text);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 0.9rem;
+      padding: 8px 10px;
+      font-size: 0.88rem;
     }
     button { cursor: pointer; font-weight: 600; }
     button.primary { background: var(--accent); color: #0f172a; border: none; }
+    button.buy-btn { background: rgba(16, 185, 129, 0.2); border-color: var(--buy); color: #34d399; width: 100%; margin-top: 6px; }
+    button.sell-btn { background: rgba(239, 68, 68, 0.2); border-color: var(--sell); color: #f87171; width: 100%; margin-top: 6px; }
+    button.doten-btn { background: var(--warn); color: #0f172a; border: none; width: 100%; margin-top: 6px; font-weight: 800; }
+    button.close-btn { background: #334155; color: #f8fafc; border: none; width: 100%; margin-top: 4px; font-size: 0.8rem; }
     button:active { opacity: 0.85; }
     .banner {
-      padding: 14px;
+      padding: 12px;
       border-radius: 10px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
       font-weight: bold;
       text-align: center;
       background: var(--card);
       border: 1px solid var(--border);
+      font-size: 0.92rem;
     }
     .banner.alert {
       background: rgba(250, 204, 21, 0.15);
-      border-color: #facc15;
+      border-color: var(--warn);
       color: #fef08a;
     }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(225px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
       gap: 12px;
     }
     .card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 14px;
+      padding: 13px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
     .card.flipped {
-      border: 2px solid #facc15;
-      box-shadow: 0 0 14px rgba(250, 204, 21, 0.25);
+      border: 2px solid var(--warn);
+      box-shadow: 0 0 14px rgba(250, 204, 21, 0.22);
     }
     .pair-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
-    .pair-name { font-size: 1.1rem; font-weight: 700; }
-    .del-btn {
-      background: transparent;
-      border: none;
-      color: var(--muted);
-      padding: 2px 6px;
-      font-size: 0.85rem;
-    }
+    .pair-name { font-size: 1.08rem; font-weight: 700; }
+    .del-btn { background: transparent; border: none; color: var(--muted); padding: 2px 6px; }
     .badge {
       display: inline-block;
-      padding: 4px 10px;
+      padding: 3px 9px;
       border-radius: 999px;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: 700;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     .badge.buy { background: rgba(16, 185, 129, 0.2); color: #34d399; }
     .badge.sell { background: rgba(239, 68, 68, 0.2); color: #f87171; }
     .flip-tag {
       display: inline-block;
-      background: #facc15;
+      background: var(--warn);
       color: #0f172a;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 800;
       padding: 2px 6px;
       border-radius: 4px;
       margin-left: 6px;
     }
     .lines {
-      background: rgba(15, 23, 42, 0.6);
+      background: var(--card-sub);
       border-radius: 8px;
-      padding: 8px 10px;
-      font-size: 0.85rem;
+      padding: 7px 10px;
+      font-size: 0.82rem;
       margin-bottom: 8px;
-      line-height: 1.6;
+      line-height: 1.5;
     }
-    .green-val { color: #34d399; font-weight: 700; }
-    .red-val { color: #f87171; font-weight: 700; }
-    .meta { font-size: 0.78rem; color: var(--muted); line-height: 1.45; }
+    .pos-box {
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 8px;
+      padding: 8px;
+      margin-top: 8px;
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+    .plus { color: #34d399; font-weight: 700; }
+    .minus { color: #f87171; font-weight: 700; }
+    .meta { font-size: 0.76rem; color: var(--muted); }
+
+    /* 成績ダッシュボード & 履歴 */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    @media (max-width: 560px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+    }
+    .stat-label { font-size: 0.75rem; color: var(--muted); }
+    .stat-val { font-size: 1.1rem; font-weight: 800; margin-top: 4px; }
+    .history-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      min-width: 540px;
+    }
+    th, td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+    th { color: var(--muted); font-weight: 600; background: rgba(15, 23, 42, 0.5); }
     .settings {
       margin-top: 20px;
       padding: 12px;
       background: var(--card);
       border-radius: 10px;
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       color: var(--muted);
     }
-    .settings input { width: 68px; padding: 4px 6px; margin: 4px 8px 4px 2px; }
+    .settings input { width: 66px; padding: 4px 6px; margin: 4px 6px 4px 2px; }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>📊 日足 QQE (Glaz版) シグナル監視</h1>
-      <button class="primary" onclick="checkAll(true)">再チェック（音テスト）</button>
+      <h1>📊 日足 QQE監視 & トレード記録</h1>
+      <button class="primary" onclick="checkAll()">最新データ更新</button>
     </header>
 
     <div id="statusBanner" class="banner">日足データを取得中...</div>
 
     <div class="controls">
-      <input id="pairInput" type="text" placeholder="例: GBP/AUD, USD/JPY" />
-      <button onclick="addPair()">＋ 通貨追加</button>
+      <input id="pairInput" type="text" placeholder="通貨追加 (例: NZD/JPY)" style="width: 170px;" />
+      <button onclick="addPair()">＋ 追加</button>
+      <span class="meta" style="margin-left: auto;">基本ロット:</span>
+      <select id="lotSelect" onchange="saveLot()">
+        <option value="1000" selected>1,000通貨</option>
+        <option value="2000">2,000通貨</option>
+        <option value="3000">3,000通貨</option>
+        <option value="5000">5,000通貨</option>
+        <option value="10000">10,000通貨</option>
+      </select>
     </div>
 
     <div id="cards" class="grid"></div>
 
+    <h2>🏆 トレード成績 & ドテン履歴</h2>
+    <div id="statsGrid" class="stats-grid"></div>
+
+    <div class="history-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>通貨</th>
+            <th>売買</th>
+            <th>エントリー日時 / 価格</th>
+            <th>決済日時 / 価格</th>
+            <th>獲得pips</th>
+            <th>損益(目安)</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+
     <div class="settings">
-      <strong>Glaz QQE パラメータ:</strong><br>
+      <strong>Glaz QQE 設定:</strong>
       Fast <input id="fastParam" type="number" step="0.0001" value="2.6180" />
       Slow <input id="slowParam" type="number" step="0.0001" value="4.2360" />
       RSI <input id="rsiParam" type="number" value="14" />
       SF <input id="sfParam" type="number" value="2" />
-      <button onclick="checkAll(false)">反映</button>
+      <button onclick="checkAll()">再計算</button>
       <div style="margin-top: 6px;">
-        ※緑(FastAtrRSI) ＞ 赤(SlowAtrRSI) で買い、赤 ＞ 緑 で売り判定。前日と上下が入れ替わると「転換！」が出ます。
+        ※エントリー・ドテンボタンを押すと約定価格を入力（初期値は最新終値）して記録できます。円以外のペアは1pips=0.0001、クロス円は1pips=0.01で計算します。
       </div>
     </div>
   </div>
 
   <script>
-    
     const DEFAULT_PAIRS = [
       "GBP/AUD", "USD/JPY", "EUR/USD",
       "GBP/JPY", "EUR/JPY", "AUD/USD",
       "EUR/AUD", "AUD/JPY", "GBP/USD"
     ];
-    let pairs = JSON.parse(localStorage.getItem("qqe_glaz_pairs")) || DEFAULT_PAIRS;
 
-    function playBeep() {
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        osc.frequency.setValueAtTime(1174.66, ctx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.2, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.5);
-      } catch (e) {}
+    let pairs = JSON.parse(localStorage.getItem("qqe_glaz_pairs_v2")) || DEFAULT_PAIRS;
+    // positions: { "GBP/AUD": { side: "BUY"|"SELL", entryPrice: 1.9850, entryDate: "2026-11-18", lot: 1000 } }
+    let positions = JSON.parse(localStorage.getItem("qqe_positions")) || {};
+    // history: [ { id, pair, side, entryPrice, entryDate, exitPrice, exitDate, pips, profitJpy, lot } ]
+    let history = JSON.parse(localStorage.getItem("qqe_history")) || [];
+    let defaultLot = Number(localStorage.getItem("qqe_lot")) || 1000;
+    document.getElementById("lotSelect").value = String(defaultLot);
+
+    let latestRates = {}; // 通貨ごとの最新終値と日付を保持
+
+    function saveLot() {
+      defaultLot = Number(document.getElementById("lotSelect").value) || 1000;
+      localStorage.setItem("qqe_lot", String(defaultLot));
     }
 
-    // Pine Scriptの rsi(close, length) と同等 (Wilder's RMAベース)
+    function saveTradeData() {
+      localStorage.setItem("qqe_positions", JSON.stringify(positions));
+      localStorage.setItem("qqe_history", JSON.stringify(history));
+    }
+
+    function getTodayStr() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const d = String(now.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    // pips と 円換算損益の計算
+    function calcPnL(pair, side, entryPrice, exitPrice, lot) {
+      const isJpyQuote = pair.endsWith("/JPY");
+      const pipUnit = isJpyQuote ? 0.01 : 0.0001;
+      const diff = side === "BUY" ? (exitPrice - entryPrice) : (entryPrice - exitPrice);
+      const pips = diff / pipUnit;
+
+      // 円換算（クロス円ならそのまま、外貨ストレートならUSD/JPYまたはAUD/JPYレートで概算換算）
+      let jpyRate = 1;
+      if (!isJpyQuote) {
+        const quote = pair.split("/")[1];
+        const quoteJpyPair = `${quote}/JPY`;
+        if (latestRates[quoteJpyPair]) {
+          jpyRate = latestRates[quoteJpyPair].close;
+        } else if (quote === "USD") {
+          jpyRate = 150;
+        } else if (quote === "AUD") {
+          jpyRate = 100;
+        }
+      }
+      const profitJpy = Math.round(diff * lot * jpyRate);
+      return { pips: Number(pips.toFixed(1)), profitJpy };
+    }
+
+    // 新規エントリー
+    function openPosition(pair, side) {
+      const suggested = latestRates[pair] ? latestRates[pair].close : "";
+      const input = prompt(`${pair} の ${side} エントリー価格を入力してください（そのままOKで終値採用）:`, suggested);
+      if (input === null) return;
+      const price = parseFloat(input);
+      if (isNaN(price) || price <= 0) {
+        alert("正しい価格を入力してください");
+        return;
+      }
+      positions[pair] = {
+        side,
+        entryPrice: price,
+        entryDate: getTodayStr(),
+        lot: defaultLot
+      };
+      saveTradeData();
+      checkAll();
+    }
+
+    // 決済のみ
+    function closePosition(pair) {
+      const pos = positions[pair];
+      if (!pos) return;
+      const suggested = latestRates[pair] ? latestRates[pair].close : pos.entryPrice;
+      const input = prompt(`${pair} (${pos.side} @ ${pos.entryPrice}) の決済価格を入力してください:`, suggested);
+      if (input === null) return;
+      const exitPrice = parseFloat(input);
+      if (isNaN(exitPrice) || exitPrice <= 0) {
+        alert("正しい価格を入力してください");
+        return;
+      }
+      const { pips, profitJpy } = calcPnL(pair, pos.side, pos.entryPrice, exitPrice, pos.lot);
+      history.unshift({
+        id: Date.now(),
+        pair,
+        side: pos.side,
+        entryPrice: pos.entryPrice,
+        entryDate: pos.entryDate,
+        exitPrice,
+        exitDate: getTodayStr(),
+        pips,
+        profitJpy,
+        lot: pos.lot
+      });
+      delete positions[pair];
+      saveTradeData();
+      checkAll();
+    }
+
+    // ドテン決済＆反対売買エントリー
+    function dotenPosition(pair, newSide) {
+      const pos = positions[pair];
+      if (!pos) return openPosition(pair, newSide);
+      const suggested = latestRates[pair] ? latestRates[pair].close : pos.entryPrice;
+      const input = prompt(
+        `【ドテン実行】${pair}\n現在の ${pos.side} (${pos.entryPrice}) を決済し、新しく ${newSide} を入れます。\n約定価格を入力してください:`,
+        suggested
+      );
+      if (input === null) return;
+      const price = parseFloat(input);
+      if (isNaN(price) || price <= 0) {
+        alert("正しい価格を入力してください");
+        return;
+      }
+      const { pips, profitJpy } = calcPnL(pair, pos.side, pos.entryPrice, price, pos.lot);
+      const today = getTodayStr();
+      history.unshift({
+        id: Date.now(),
+        pair,
+        side: pos.side,
+        entryPrice: pos.entryPrice,
+        entryDate: pos.entryDate,
+        exitPrice: price,
+        exitDate: today,
+        pips,
+        profitJpy,
+        lot: pos.lot
+      });
+      positions[pair] = {
+        side: newSide,
+        entryPrice: price,
+        entryDate: today,
+        lot: defaultLot
+      };
+      saveTradeData();
+      checkAll();
+    }
+
+    function deleteHistory(id) {
+      if (!confirm("このトレード履歴を1件削除しますか？")) return;
+      history = history.filter(h => h.id !== id);
+      saveTradeData();
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const statsGrid = document.getElementById("statsGrid");
+      const tbody = document.getElementById("historyBody");
+
+      const totalTrades = history.length;
+      const wins = history.filter(h => h.pips > 0).length;
+      const winRate = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) : "0.0";
+      const totalPips = history.reduce((acc, h) => acc + h.pips, 0).toFixed(1);
+      const totalProfit = history.reduce((acc, h) => acc + h.profitJpy, 0);
+
+      const pipsClass = Number(totalPips) >= 0 ? "plus" : "minus";
+      const profitClass = totalProfit >= 0 ? "plus" : "minus";
+
+      statsGrid.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-label">決済回数</div>
+          <div class="stat-val">${totalTrades}回</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">勝率</div>
+          <div class="stat-val">${winRate}%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">累計獲得pips</div>
+          <div class="stat-val ${pipsClass}">${Number(totalPips) >= 0 ? "+" : ""}${totalPips}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">累計損益(目安)</div>
+          <div class="stat-val ${profitClass}">${totalProfit >= 0 ? "+" : ""}${totalProfit.toLocaleString()}円</div>
+        </div>
+      `;
+
+      if (history.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--muted); padding: 16px;">まだ決済済みの記録はありません。シグナル点灯時にエントリーボタンを押すと記録が始まります。</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = history.map(h => {
+        const isWin = h.pips >= 0;
+        return `
+          <tr>
+            <td><strong>${h.pair}</strong><br><span class="meta">${h.lot.toLocaleString()}通貨</span></td>
+            <td><span class="badge ${h.side === "BUY" ? "buy" : "sell"}" style="margin:0;">${h.side}</span></td>
+            <td>${h.entryDate}<br><strong>${h.entryPrice}</strong></td>
+            <td>${h.exitDate}<br><strong>${h.exitPrice}</strong></td>
+            <td class="${isWin ? "plus" : "minus"}">${isWin ? "+" : ""}${h.pips} pips</td>
+            <td class="${isWin ? "plus" : "minus"}">${isWin ? "+" : ""}${h.profitJpy.toLocaleString()}円</td>
+            <td><button class="del-btn" onclick="deleteHistory(${h.id})">✕</button></td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    // Pine Script互換計算関数群
     function pineRsi(closes, length) {
       const n = closes.length;
       const rsi = new Array(n).fill(50);
       if (n <= length) return rsi;
-
-      let gainSum = 0;
-      let lossSum = 0;
+      let gainSum = 0, lossSum = 0;
       for (let i = 1; i <= length; i++) {
         const diff = closes[i] - closes[i - 1];
         if (diff > 0) gainSum += diff;
@@ -206,7 +467,6 @@
       let avgGain = gainSum / length;
       let avgLoss = lossSum / length;
       rsi[length] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
-
       for (let i = length + 1; i < n; i++) {
         const diff = closes[i] - closes[i - 1];
         const g = diff > 0 ? diff : 0;
@@ -218,7 +478,6 @@
       return rsi;
     }
 
-    // Pine Scriptの ema(src, length)
     function pineEma(values, length) {
       const k = 2 / (length + 1);
       const out = [values[0]];
@@ -228,7 +487,6 @@
       return out;
     }
 
-    // Glaz版の WiMA(src, length) => (src + nz(MA_s[1] * (length - 1))) / length
     function wima(values, length) {
       const out = new Array(values.length).fill(0);
       out[0] = values[0] / length;
@@ -238,73 +496,45 @@
       return out;
     }
 
-    // Glaz Metastock Version of QQE 完全再現
     function calcGlazQQE(closes, fast = 2.618, slow = 4.236, rsiLen = 14, sf = 2) {
       const n = closes.length;
       const rawRsi = pineRsi(closes, rsiLen);
       const rsIndex = pineEma(rawRsi, sf);
-
       const tr = new Array(n).fill(0);
       for (let i = 1; i < n; i++) {
         const th = rsIndex[i - 1] > rsIndex[i] ? rsIndex[i - 1] : rsIndex[i];
         const tl = rsIndex[i - 1] < rsIndex[i] ? rsIndex[i - 1] : rsIndex[i];
         tr[i] = th - tl;
       }
-
       const atrRsi = wima(tr, 14);
       const smoothedAtrRsi = wima(atrRsi, 14);
-
       const deltaFast = smoothedAtrRsi.map(v => v * fast);
       const deltaSlow = smoothedAtrRsi.map(v => v * slow);
 
-      const longband = new Array(n).fill(0);
-      const shortband = new Array(n).fill(0);
-      const trend = new Array(n).fill(1);
-      const fastTL = new Array(n).fill(0);
-
-      const longband1 = new Array(n).fill(0);
-      const shortband1 = new Array(n).fill(0);
-      const trend1 = new Array(n).fill(1);
-      const slowTL = new Array(n).fill(0);
+      const longband = new Array(n).fill(0), shortband = new Array(n).fill(0), trend = new Array(n).fill(1), fastTL = new Array(n).fill(0);
+      const longband1 = new Array(n).fill(0), shortband1 = new Array(n).fill(0), trend1 = new Array(n).fill(1), slowTL = new Array(n).fill(0);
 
       for (let i = 1; i < n; i++) {
-        // Fast (緑の線)
         const newShort = rsIndex[i] + deltaFast[i];
         const newLong = rsIndex[i] - deltaFast[i];
-
-        longband[i] = (rsIndex[i - 1] > longband[i - 1] && rsIndex[i] > longband[i - 1])
-          ? Math.max(longband[i - 1], newLong)
-          : newLong;
-        shortband[i] = (rsIndex[i - 1] < shortband[i - 1] && rsIndex[i] < shortband[i - 1])
-          ? Math.min(shortband[i - 1], newShort)
-          : newShort;
-
+        longband[i] = (rsIndex[i - 1] > longband[i - 1] && rsIndex[i] > longband[i - 1]) ? Math.max(longband[i - 1], newLong) : newLong;
+        shortband[i] = (rsIndex[i - 1] < shortband[i - 1] && rsIndex[i] < shortband[i - 1]) ? Math.min(shortband[i - 1], newShort) : newShort;
         const crossUpFast = rsIndex[i - 1] <= shortband[i - 1] && rsIndex[i] > shortband[i - 1];
         const crossDownFast = longband[i - 1] <= rsIndex[i - 1] && longband[i - 1] > rsIndex[i];
         trend[i] = crossUpFast ? 1 : (crossDownFast ? -1 : trend[i - 1]);
         fastTL[i] = trend[i] === 1 ? longband[i] : shortband[i];
 
-        // Slow (赤の線)
         const newShort1 = rsIndex[i] + deltaSlow[i];
         const newLong1 = rsIndex[i] - deltaSlow[i];
-
-        longband1[i] = (rsIndex[i - 1] > longband1[i - 1] && rsIndex[i] > longband1[i - 1])
-          ? Math.max(longband1[i - 1], newLong1)
-          : newLong1;
-        shortband1[i] = (rsIndex[i - 1] < shortband1[i - 1] && rsIndex[i] < shortband1[i - 1])
-          ? Math.min(shortband1[i - 1], newShort1)
-          : newShort1;
-
+        longband1[i] = (rsIndex[i - 1] > longband1[i - 1] && rsIndex[i] > longband1[i - 1]) ? Math.max(longband1[i - 1], newLong1) : newLong1;
+        shortband1[i] = (rsIndex[i - 1] < shortband1[i - 1] && rsIndex[i] < shortband1[i - 1]) ? Math.min(shortband1[i - 1], newShort1) : newShort1;
         const crossUpSlow = rsIndex[i - 1] <= shortband1[i - 1] && rsIndex[i] > shortband1[i - 1];
         const crossDownSlow = longband1[i - 1] <= rsIndex[i - 1] && longband1[i - 1] > rsIndex[i];
         trend1[i] = crossUpSlow ? 1 : (crossDownSlow ? -1 : trend1[i - 1]);
         slowTL[i] = trend1[i] === 1 ? longband1[i] : shortband1[i];
       }
 
-      const last = n - 1;
-      const prev = n - 2;
-
-      // 緑(fastTL)が赤(slowTL)より上ならBUY、赤が緑より上ならSELL
+      const last = n - 1, prev = n - 2;
       const isBuyNow = fastTL[last] > slowTL[last];
       const wasBuyPrev = fastTL[prev] > slowTL[prev];
 
@@ -313,7 +543,6 @@
         flipped: isBuyNow !== wasBuyPrev,
         greenFast: fastTL[last].toFixed(2),
         redSlow: slowTL[last].toFixed(2),
-        yellowRsi: rsIndex[last].toFixed(2),
         close: closes[last]
       };
     }
@@ -321,7 +550,7 @@
     async function fetchDailyCloses(base, quote) {
       const end = new Date();
       const start = new Date();
-      start.setDate(end.getDate() - 180); // WiMA収束用に約半年分取得
+      start.setDate(end.getDate() - 180);
       const fmt = d => d.toISOString().split("T")[0];
       const url = `https://api.frankfurter.dev/v1/${fmt(start)}..${fmt(end)}?base=${base}&symbols=${quote}`;
       const res = await fetch(url);
@@ -334,7 +563,7 @@
       };
     }
 
-    async function checkAll(userTriggered = false) {
+    async function checkAll() {
       const banner = document.getElementById("statusBanner");
       const grid = document.getElementById("cards");
       banner.className = "banner";
@@ -352,82 +581,118 @@
         try {
           const { dates, closes } = await fetchDailyCloses(base, quote);
           const qqe = calcGlazQQE(closes, fast, slow, rsiLen, sf);
-          results.push({ pair, lastDate: dates[dates.length - 1], ...qqe });
+          const lastDate = dates[dates.length - 1];
+          latestRates[pair] = { close: qqe.close, date: lastDate };
+          results.push({ pair, lastDate, ...qqe });
         } catch (err) {
           results.push({ pair, error: true });
         }
       }
 
-      // 緑と赤が入れ替わった通貨を一番上に並べる
-      results.sort((a, b) => (b.flipped ? 1 : 0) - (a.flipped ? 1 : 0));
+      // ドテン要対応（保有と逆サイン）や新規転換を優先して上に並べる
+      results.sort((a, b) => {
+        const aNeedDoten = !a.error && positions[a.pair] && ((positions[a.pair].side === "BUY") !== a.isBuy);
+        const bNeedDoten = !b.error && positions[b.pair] && ((positions[b.pair].side === "BUY") !== b.isBuy);
+        if (aNeedDoten !== bNeedDoten) return bNeedDoten ? 1 : -1;
+        return (b.flipped ? 1 : 0) - (a.flipped ? 1 : 0);
+      });
 
       const flippedPairs = results.filter(r => !r.error && r.flipped);
       if (flippedPairs.length > 0) {
         banner.className = "banner alert";
         banner.textContent = `🔔 シグナル転換あり: ${flippedPairs.map(p => p.pair).join(", ")}`;
-        if (userTriggered) playBeep();
       } else {
-        banner.textContent = "✅ 本日の日足では緑・赤の入れ替わりはありません";
+        banner.textContent = "✅ 本日の日足では新規の緑・赤入れ替わりはありません";
       }
 
       for (const r of results) {
         const card = document.createElement("div");
-        card.className = "card" + (r.flipped ? " flipped" : "");
+        const pos = positions[r.pair];
+        const currentSignalSide = r.isBuy ? "BUY" : "SELL";
+        const isDotenTime = pos && pos.side !== currentSignalSide;
+
+        card.className = "card" + ((r.flipped || isDotenTime) ? " flipped" : "");
+
         if (r.error) {
           card.innerHTML = `
             <div class="pair-row">
               <span class="pair-name">${r.pair}</span>
               <button class="del-btn" onclick="removePair('${r.pair}')">✕</button>
             </div>
-            <div class="meta">データ取得エラー（通貨コードを確認）</div>
+            <div class="meta">データ取得エラー</div>
           `;
         } else {
+          let positionHtml = "";
+          if (pos) {
+            const pnl = calcPnL(r.pair, pos.side, pos.entryPrice, r.close, pos.lot);
+            const isPlus = pnl.pips >= 0;
+            positionHtml = `
+              <div class="pos-box">
+                <div><strong>保有中: ${pos.side}</strong> (${pos.lot.toLocaleString()}通貨)</div>
+                <div class="meta">${pos.entryDate} 約定: <strong>${pos.entryPrice}</strong></div>
+                <div>含み損益: <span class="${isPlus ? "plus" : "minus"}">${isPlus ? "+" : ""}${pnl.pips} pips (${isPlus ? "+" : ""}${pnl.profitJpy.toLocaleString()}円)</span></div>
+                ${isDotenTime
+                  ? `<button class="doten-btn" onclick="dotenPosition('${r.pair}', '${currentSignalSide}')">🔄 ドテン決済＆${currentSignalSide}記録</button>`
+                  : `<button class="close-btn" onclick="closePosition('${r.pair}')">決済して利益確定/損切り</button>`
+                }
+              </div>
+            `;
+          } else {
+            positionHtml = `
+              <button class="${r.isBuy ? "buy-btn" : "sell-btn"}" onclick="openPosition('${r.pair}', '${currentSignalSide}')">
+                📥 この価格で ${currentSignalSide} 記録
+              </button>
+            `;
+          }
+
           card.innerHTML = `
-            <div class="pair-row">
-              <span class="pair-name">${r.pair}${r.flipped ? '<span class="flip-tag">転換！</span>' : ""}</span>
-              <button class="del-btn" onclick="removePair('${r.pair}')">✕</button>
-            </div>
             <div>
-              <span class="badge ${r.isBuy ? "buy" : "sell"}">
-                ${r.isBuy ? "▲ BUY（緑が上）" : "▼ SELL（赤が上）"}
-              </span>
+              <div class="pair-row">
+                <span class="pair-name">${r.pair}${r.flipped ? '<span class="flip-tag">転換！</span>' : ""}</span>
+                <button class="del-btn" onclick="removePair('${r.pair}')">✕</button>
+              </div>
+              <div>
+                <span class="badge ${r.isBuy ? "buy" : "sell"}">
+                  ${r.isBuy ? "▲ BUY（緑が上）" : "▼ SELL（赤が上）"}
+                </span>
+              </div>
+              <div class="lines">
+                🟢 緑: <strong style="color:#34d399">${r.greenFast}</strong> / 🔴 赤: <strong style="color:#f87171">${r.redSlow}</strong><br>
+                現在終値: <strong>${r.close}</strong> <span class="meta">(${r.lastDate})</span>
+              </div>
             </div>
-            <div class="lines">
-              🟢 緑 (Fast): <span class="green-val">${r.greenFast}</span><br>
-              🔴 赤 (Slow): <span class="red-val">${r.redSlow}</span>
-            </div>
-            <div class="meta">
-              終値: ${r.close} / 確定日: ${r.lastDate}
-            </div>
+            ${positionHtml}
           `;
         }
         grid.appendChild(card);
       }
+
+      renderHistory();
     }
 
     function addPair() {
       const input = document.getElementById("pairInput");
       const raw = input.value.trim().toUpperCase().replace(/[^A-Z]/g, "");
       if (raw.length !== 6) {
-        alert("6文字の通貨ペアを入力してください（例: GBP/AUD または GBPAUD）");
+        alert("6文字の通貨ペアを入力してください（例: NZD/JPY）");
         return;
       }
       const formatted = `${raw.slice(0, 3)}/${raw.slice(3, 6)}`;
       if (!pairs.includes(formatted)) {
         pairs.push(formatted);
-        localStorage.setItem("qqe_glaz_pairs", JSON.stringify(pairs));
+        localStorage.setItem("qqe_glaz_pairs_v2", JSON.stringify(pairs));
       }
       input.value = "";
-      checkAll(false);
+      checkAll();
     }
 
     function removePair(pair) {
       pairs = pairs.filter(p => p !== pair);
-      localStorage.setItem("qqe_glaz_pairs", JSON.stringify(pairs));
-      checkAll(false);
+      localStorage.setItem("qqe_glaz_pairs_v2", JSON.stringify(pairs));
+      checkAll();
     }
 
-    checkAll(false);
+    checkAll();
   </script>
 </body>
 </html>
