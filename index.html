@@ -55,8 +55,27 @@
     button { cursor: pointer; font-weight: 600; }
     button.primary { background: var(--accent); color: #0f172a; border: none; }
     button.sub-btn { background: #334155; color: #e2e8f0; border: none; font-size: 0.8rem; }
-    button.buy-btn { background: rgba(16, 185, 129, 0.2); border-color: var(--buy); color: #34d399; width: 100%; margin-top: 6px; }
-    button.sell-btn { background: rgba(239, 68, 68, 0.2); border-color: var(--sell); color: #f87171; width: 100%; margin-top: 6px; }
+    button.buy-btn { background: rgba(16, 185, 129, 0.22); border-color: var(--buy); color: #34d399; width: 100%; margin-top: 6px; }
+    button.sell-btn { background: rgba(239, 68, 68, 0.22); border-color: var(--sell); color: #f87171; width: 100%; margin-top: 6px; }
+
+    /* 逆張り用ミニボタン */
+    button.counter-btn {
+      background: transparent;
+      border: 1px dashed var(--border);
+      color: var(--muted);
+      width: 100%;
+      margin-top: 5px;
+      padding: 4px 8px;
+      font-size: 0.74rem;
+      font-weight: 500;
+      border-radius: 6px;
+    }
+    button.counter-btn:hover {
+      border-color: #64748b;
+      color: #cbd5e1;
+      background: rgba(148, 163, 184, 0.08);
+    }
+
     button.doten-btn { background: var(--warn); color: #0f172a; border: none; width: 100%; margin-top: 6px; font-weight: 800; }
     button.close-btn { background: #334155; color: #f8fafc; border: none; width: 100%; margin-top: 4px; font-size: 0.8rem; }
     button:active { opacity: 0.85; }
@@ -116,6 +135,16 @@
     }
     .badge.buy { background: rgba(16, 185, 129, 0.2); color: #34d399; }
     .badge.sell { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+    .counter-tag {
+      display: inline-block;
+      background: rgba(148, 163, 184, 0.2);
+      color: #cbd5e1;
+      font-size: 0.68rem;
+      padding: 1px 5px;
+      border-radius: 4px;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
     .flip-tag {
       display: inline-block;
       background: var(--warn);
@@ -272,7 +301,7 @@
       SF <input id="sfParam" type="number" value="2" />
       <button onclick="checkAll()">再計算</button>
       <div style="margin-top: 6px;">
-        ※「🔥 要チェック！」は、<strong>QQEのサイン方向と日足200EMAのトレンド方向（かつ200EMAの傾き）が一致</strong>している強い順張りチャンスを示します。
+        ※メインボタンで順張り記録、下の小さな破線ボタンで「逆張り」エントリーも記録できます。
       </div>
     </div>
   </div>
@@ -350,9 +379,11 @@
       return { pips: Number(pips.toFixed(1)), profitJpy };
     }
 
-    function openPosition(pair, side) {
+    // isCounter: true の場合は「逆張りエントリー」として記録
+    function openPosition(pair, side, isCounter = false) {
       const suggested = latestRates[pair] ? latestRates[pair].close : "";
-      const input = prompt(`${pair} の ${side} エントリー価格を入力してください（そのままOKで終値採用）:`, suggested);
+      const modeLabel = isCounter ? "【逆張り】" : "";
+      const input = prompt(`${modeLabel}${pair} の ${side} エントリー価格を入力してください（そのままOKで終値採用）:`, suggested);
       if (input === null) return;
       const price = parseFloat(input);
       if (isNaN(price) || price <= 0) {
@@ -363,7 +394,8 @@
         side,
         entryPrice: price,
         entryDate: getTodayStr(),
-        lot: defaultLot
+        lot: defaultLot,
+        isCounter
       };
       saveTradeData();
       checkAll();
@@ -391,7 +423,8 @@
         exitDate: getTodayStr(),
         pips,
         profitJpy,
-        lot: pos.lot
+        lot: pos.lot,
+        isCounter: Boolean(pos.isCounter)
       });
       delete positions[pair];
       saveTradeData();
@@ -400,7 +433,7 @@
 
     function dotenPosition(pair, newSide) {
       const pos = positions[pair];
-      if (!pos) return openPosition(pair, newSide);
+      if (!pos) return openPosition(pair, newSide, false);
       const suggested = latestRates[pair] ? latestRates[pair].close : pos.entryPrice;
       const input = prompt(
         `【ドテン実行】${pair}\n現在の ${pos.side} (${pos.entryPrice}) を決済し、新しく ${newSide} を入れます。\n約定価格を入力してください:`,
@@ -424,13 +457,15 @@
         exitDate: today,
         pips,
         profitJpy,
-        lot: pos.lot
+        lot: pos.lot,
+        isCounter: Boolean(pos.isCounter)
       });
       positions[pair] = {
         side: newSide,
         entryPrice: price,
         entryDate: today,
-        lot: defaultLot
+        lot: defaultLot,
+        isCounter: false
       };
       saveTradeData();
       checkAll();
@@ -485,7 +520,10 @@
         return `
           <tr>
             <td><strong>${h.pair}</strong><br><span class="meta">${h.lot.toLocaleString()}通貨</span></td>
-            <td><span class="badge ${h.side === "BUY" ? "buy" : "sell"}" style="margin:0;">${h.side}</span></td>
+            <td>
+              <span class="badge ${h.side === "BUY" ? "buy" : "sell"}" style="margin:0;">${h.side}</span>
+              ${h.isCounter ? '<span class="counter-tag">逆張り</span>' : ""}
+            </td>
             <td>${h.entryDate}<br><strong>${h.entryPrice}</strong></td>
             <td>${h.exitDate}<br><strong>${h.exitPrice}</strong></td>
             <td class="${isWin ? "plus" : "minus"}">${isWin ? "+" : ""}${h.pips} pips</td>
@@ -576,7 +614,6 @@
         slowTL[i] = trend1[i] === 1 ? longband1[i] : shortband1[i];
       }
 
-      // 200EMAの計算（過去320日分の営業日データから算出）
       const ema200Arr = pineEma(closes, 200);
       const last = n - 1, prev = n - 2;
       const closeNow = closes[last];
@@ -586,7 +623,6 @@
       const isBuyNow = fastTL[last] > slowTL[last];
       const wasBuyPrev = fastTL[prev] > slowTL[prev];
 
-      // 200EMAトレンド判定（価格が200EMAの上か下か + 200EMA自体の傾き）
       const aboveEma = closeNow > ema200Now;
       const emaRising = ema200Now >= ema200Prev;
       const isStrongAligned = (isBuyNow && aboveEma && emaRising) || (!isBuyNow && !aboveEma && !emaRising);
@@ -609,7 +645,6 @@
     }
 
     async function fetchDailyCloses(base, quote) {
-      // 200EMAを精度よく計算するため、約330日分（営業日約235日分）を取得
       const end = new Date(Date.now() + 9 * 60 * 60 * 1000 + 24 * 60 * 60 * 1000);
       const start = new Date(end.getTime() - 335 * 24 * 60 * 60 * 1000);
       const fmt = d => d.toISOString().split("T")[0];
@@ -636,7 +671,6 @@
       const rsiLen = Number(document.getElementById("rsiParam").value) || 14;
       const sf = Number(document.getElementById("sfParam").value) || 2;
 
-      // 18通貨を並列で高速取得
       const results = await Promise.all(pairs.map(async (pair) => {
         const [base, quote] = pair.split("/");
         try {
@@ -650,13 +684,11 @@
         }
       }));
 
-      // 優先度順に自動ソート：
-      // 1. ドテン要対応 2. 転換＋200EMA強トレンド一致 3. 新規転換 4. 200EMA強トレンド継続中
       results.sort((a, b) => {
         if (a.error) return 1;
         if (b.error) return -1;
-        const aDoten = positions[a.pair] && ((positions[a.pair].side === "BUY") !== a.isBuy) ? 100 : 0;
-        const bDoten = positions[b.pair] && ((positions[b.pair].side === "BUY") !== b.isBuy) ? 100 : 0;
+        const aDoten = positions[a.pair] && ((positions[a.pair].side === "BUY") !== a.isBuy) && !positions[a.pair].isCounter ? 100 : 0;
+        const bDoten = positions[b.pair] && ((positions[b.pair].side === "BUY") !== b.isBuy) && !positions[b.pair].isCounter ? 100 : 0;
         const aScore = aDoten + (a.flipped ? 20 : 0) + (a.isStrongAligned ? 10 : (a.isBasicAligned ? 5 : 0));
         const bScore = bDoten + (b.flipped ? 20 : 0) + (b.isStrongAligned ? 10 : (b.isBasicAligned ? 5 : 0));
         return bScore - aScore;
@@ -679,7 +711,8 @@
         const card = document.createElement("div");
         const pos = positions[r.pair];
         const currentSignalSide = r.isBuy ? "BUY" : "SELL";
-        const isDotenTime = pos && pos.side !== currentSignalSide;
+        const counterSignalSide = r.isBuy ? "SELL" : "BUY";
+        const isDotenTime = pos && !pos.isCounter && pos.side !== currentSignalSide;
 
         let cardClass = "card";
         if (r.flipped || isDotenTime) cardClass += " flipped";
@@ -701,7 +734,10 @@
             const isPlus = pnl.pips >= 0;
             positionHtml = `
               <div class="pos-box">
-                <div><strong>保有中: ${pos.side}</strong> (${pos.lot.toLocaleString()}通貨)</div>
+                <div>
+                  <strong>保有中: ${pos.side}</strong> (${pos.lot.toLocaleString()}通貨)
+                  ${pos.isCounter ? '<span class="counter-tag">逆張り</span>' : ""}
+                </div>
                 <div class="meta">${pos.entryDate} 約定: <strong>${pos.entryPrice}</strong></div>
                 <div>含み損益: <span class="${isPlus ? "plus" : "minus"}">${isPlus ? "+" : ""}${pnl.pips} pips (${isPlus ? "+" : ""}${pnl.profitJpy.toLocaleString()}円)</span></div>
                 ${isDotenTime
@@ -712,9 +748,14 @@
             `;
           } else {
             positionHtml = `
-              <button class="${r.isBuy ? "buy-btn" : "sell-btn"}" onclick="openPosition('${r.pair}', '${currentSignalSide}')">
-                📥 この価格で ${currentSignalSide} 記録
-              </button>
+              <div>
+                <button class="${r.isBuy ? "buy-btn" : "sell-btn"}" onclick="openPosition('${r.pair}', '${currentSignalSide}', false)">
+                  📥 この価格で ${currentSignalSide} 記録
+                </button>
+                <button class="counter-btn" onclick="openPosition('${r.pair}', '${counterSignalSide}', true)">
+                  ↩ 逆張り ${counterSignalSide} 記録
+                </button>
+              </div>
             `;
           }
 
