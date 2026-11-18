@@ -84,6 +84,7 @@
       font-size: 0.78rem;
     }
     button { cursor: pointer; font-weight: 600; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
     button.primary { background: var(--accent); color: #0f172a; border: none; padding: 6px 12px; }
     button.reset-btn {
       background: rgba(239, 68, 68, 0.16);
@@ -140,7 +141,6 @@
       padding: 5px 4px;
       font-size: 0.72rem;
     }
-    button:active { opacity: 0.85; }
 
     .banner {
       padding: 9px 10px;
@@ -159,7 +159,6 @@
       color: #fed7aa;
     }
 
-    /* スマホ横2列・PC横3〜4列 */
     .grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -311,7 +310,7 @@
       <div class="header-btns">
         <a href="./index.html" class="nav-link">📊 日足へ</a>
         <button class="reset-btn" onclick="resetAllRecords()">全記録消去</button>
-        <button class="primary" onclick="checkAll()">更新</button>
+        <button id="updateBtn" class="primary" onclick="checkAll(true)">更新</button>
       </div>
     </header>
 
@@ -364,9 +363,9 @@
       Slow <input id="slowParam" type="number" step="0.0001" value="4.2360" />
       RSI <input id="rsiParam" type="number" value="14" />
       SF <input id="sfParam" type="number" value="2" />
-      <button onclick="checkAll()">再計算</button>
+      <button onclick="checkAll(true)">再計算</button>
       <div style="margin-top: 5px;">
-        ※毎時00分過ぎに「更新」を押すと、直前の1時間足確定データ（7クレジット消費）で判定します。
+        ※Twelve Data無料枠は1分間に8回までのため、1回更新すると60秒間ボタンがロックされます。
       </div>
     </div>
   </div>
@@ -399,13 +398,36 @@
     }
 
     let latestRates = {};
+    let lastResultsCache = [];
+    let isFetching = false;
+    let cooldownTimer = null;
+
+    function startCooldown(seconds = 62) {
+      const btn = document.getElementById("updateBtn");
+      if (!btn) return;
+      if (cooldownTimer) clearInterval(cooldownTimer);
+      let rem = seconds;
+      btn.disabled = true;
+      btn.textContent = `待機 ${rem}s`;
+      cooldownTimer = setInterval(() => {
+        rem -= 1;
+        if (rem <= 0) {
+          clearInterval(cooldownTimer);
+          cooldownTimer = null;
+          btn.disabled = false;
+          btn.textContent = "更新";
+        } else {
+          btn.textContent = `待機 ${rem}s`;
+        }
+      }, 1000);
+    }
 
     function saveApiKey() {
       const val = document.getElementById("apiKeyInput").value.trim();
       apiKey = val;
       localStorage.setItem("twelvedata_api_key", val);
       document.getElementById("apiStatus").textContent = val ? "✅ 保存済" : "未設定";
-      if (val) checkAll();
+      if (val && !isFetching) checkAll(true);
     }
 
     function resetAllRecords() {
@@ -415,8 +437,8 @@
       localStorage.removeItem("qqe_1h_positions");
       localStorage.removeItem("qqe_1h_history");
       renderHistory();
-      if (apiKey) checkAll();
-      else alert("すべての記録を消去しました！");
+      if (lastResultsCache.length > 0) renderCards(lastResultsCache);
+      alert("すべての記録を消去しました！");
     }
 
     function saveLot() {
@@ -465,7 +487,7 @@
       if (isNaN(price) || price <= 0) return alert("正しい価格を入力してください");
       positions[pair] = { side, entryPrice: price, entryDate: getNowStr(), lot: defaultLot, isCounter };
       saveTradeData();
-      checkAll();
+      if (lastResultsCache.length > 0) renderCards(lastResultsCache);
     }
 
     function closePosition(pair) {
@@ -484,7 +506,8 @@
       });
       delete positions[pair];
       saveTradeData();
-      checkAll();
+      renderHistory();
+      if (lastResultsCache.length > 0) renderCards(lastResultsCache);
     }
 
     function dotenPosition(pair, newSide) {
@@ -504,7 +527,8 @@
       });
       positions[pair] = { side: newSide, entryPrice: price, entryDate: nowStr, lot: defaultLot, isCounter: false };
       saveTradeData();
-      checkAll();
+      renderHistory();
+      if (lastResultsCache.length > 0) renderCards(lastResultsCache);
     }
 
     function deleteHistory(id) {
@@ -662,7 +686,6 @@
       };
     }
 
-    // 無料枠のFrankfurterから日足200EMAの方向（up / down / mix）を取得
     async function fetchDailyDir(base, quote) {
       const end = new Date(Date.now() + 9 * 60 * 60 * 1000 + 24 * 60 * 60 * 1000);
       const start = new Date(end.getTime() - 335 * 24 * 60 * 60 * 1000);
@@ -682,7 +705,6 @@
       return "mix";
     }
 
-    // Twelve Data から1時間足（直近260本）を取得
     async function fetch1HourCloses(pair) {
       const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(pair)}&interval=1h&outputsize=260&apikey=${encodeURIComponent(apiKey)}`;
       const res = await fetch(url, { cache: "no-store" });
@@ -690,7 +712,6 @@
       if (data.status === "error" || !data.values) {
         throw new Error(data.message || "APIエラー");
       }
-      // 古い順に並べ替え
       const asc = [...data.values].reverse();
       const lastBar = asc[asc.length - 1];
       return {
@@ -699,68 +720,24 @@
       };
     }
 
-    async function checkAll() {
-      renderHistory();
+    function renderCards(results) {
       const banner = document.getElementById("statusBanner");
       const grid = document.getElementById("cards");
-
-      if (!apiKey) {
-        banner.textContent = "上の入力欄に Twelve Data APIキーを貼り付けて「保存」を押してください";
-        return;
-      }
-
-      banner.className = "banner";
-      banner.textContent = "日足200EMA ＋ 1時間足データ(7通貨)を取得中...";
       grid.innerHTML = "";
 
-      const fast = Number(document.getElementById("fastParam").value) || 2.618;
-      const slow = Number(document.getElementById("slowParam").value) || 4.236;
-      const rsiLen = Number(document.getElementById("rsiParam").value) || 14;
-      const sf = Number(document.getElementById("sfParam").value) || 2;
-
-      const results = await Promise.all(PAIRS.map(async (item) => {
-        const [base, quote] = item.code.split("/");
-        try {
-          const [dailyDir, h1Data] = await Promise.all([
-            fetchDailyDir(base, quote),
-            fetch1HourCloses(item.code)
-          ]);
-          const qqe = calcQQEAndEma(h1Data.closes, fast, slow, rsiLen, sf);
-          latestRates[item.code] = qqe.close;
-
-          // 3条件GO判定（日足200EMA + 1H200EMA + 1H QQE がすべて同方向）
-          const isGoBuy = dailyDir === "up" && qqe.h1Dir === "up" && qqe.isBuy;
-          const isGoSell = dailyDir === "down" && qqe.h1Dir === "down" && !qqe.isBuy;
-          const isGo = isGoBuy || isGoSell;
-
-          return {
-            ...item,
-            dailyDir,
-            lastTime: h1Data.lastTime,
-            isGo,
-            ...qqe
-          };
-        } catch (err) {
-          return { ...item, error: err.message || "取得エラー" };
-        }
-      }));
-
-      results.sort((a, b) => {
-        if (a.error) return 1;
-        if (b.error) return -1;
-        const aScore = (a.isGo ? 50 : 0) + (a.flipped ? 20 : 0);
-        const bScore = (b.isGo ? 50 : 0) + (b.flipped ? 20 : 0);
-        return bScore - aScore;
-      });
-
       const valid = results.find(r => !r.error);
+      const hasRateLimit = results.some(r => r.error && r.error.includes("API credits"));
       const timeLabel = valid ? `最新足: ${valid.lastTime}` : "";
       const goList = results.filter(r => !r.error && r.isGo);
 
-      if (goList.length > 0) {
+      if (hasRateLimit) {
+        banner.className = "banner alert";
+        banner.innerHTML = `⏳ 1分間のAPI回数上限に達しました。1分待ってから「更新」を押してください。`;
+      } else if (goList.length > 0) {
         banner.className = "banner alert";
         banner.innerHTML = `🔥 3条件GOサイン: ${goList.map(g => `${g.code}(${g.jp})`).join(" / ")}<br><span class="meta">${timeLabel}</span>`;
       } else {
+        banner.className = "banner";
         banner.innerHTML = `⏳ 現在3条件すべて一致のGO通貨なし<br><span class="meta">${timeLabel}</span>`;
       }
 
@@ -779,9 +756,10 @@
         card.className = cardClass;
 
         if (r.error) {
+          const shortErr = r.error.includes("API credits") ? "1分間の制限待機中（1分後に再更新）" : r.error;
           card.innerHTML = `
             <div class="pair-title"><span class="pair-en">${r.code}</span><span class="pair-jp">${r.jp}</span></div>
-            <div class="meta">${r.error}</div>
+            <div class="meta">${shortErr}</div>
           `;
         } else {
           let positionHtml = "";
@@ -837,7 +815,72 @@
       }
     }
 
-    checkAll();
+    async function checkAll(isManual = false) {
+      renderHistory();
+      const banner = document.getElementById("statusBanner");
+      const btn = document.getElementById("updateBtn");
+
+      if (!apiKey) {
+        banner.textContent = "上の入力欄に Twelve Data APIキーを貼り付けて「保存」を押してください";
+        return;
+      }
+
+      if (isFetching) return;
+      isFetching = true;
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "取得中...";
+      }
+
+      banner.className = "banner";
+      banner.textContent = "日足200EMA ＋ 1時間足データ(7通貨)を取得中...";
+
+      const fast = Number(document.getElementById("fastParam").value) || 2.618;
+      const slow = Number(document.getElementById("slowParam").value) || 4.236;
+      const rsiLen = Number(document.getElementById("rsiParam").value) || 14;
+      const sf = Number(document.getElementById("sfParam").value) || 2;
+
+      const results = [];
+      for (const item of PAIRS) {
+        const [base, quote] = item.code.split("/");
+        try {
+          const [dailyDir, h1Data] = await Promise.all([
+            fetchDailyDir(base, quote),
+            fetch1HourCloses(item.code)
+          ]);
+          const qqe = calcQQEAndEma(h1Data.closes, fast, slow, rsiLen, sf);
+          latestRates[item.code] = qqe.close;
+
+          const isGoBuy = dailyDir === "up" && qqe.h1Dir === "up" && qqe.isBuy;
+          const isGoSell = dailyDir === "down" && qqe.h1Dir === "down" && !qqe.isBuy;
+          const isGo = isGoBuy || isGoSell;
+
+          results.push({ ...item, dailyDir, lastTime: h1Data.lastTime, isGo, ...qqe });
+        } catch (err) {
+          results.push({ ...item, error: err.message || "取得エラー" });
+        }
+      }
+
+      results.sort((a, b) => {
+        if (a.error) return 1;
+        if (b.error) return -1;
+        const aScore = (a.isGo ? 50 : 0) + (a.flipped ? 20 : 0);
+        const bScore = (b.isGo ? 50 : 0) + (b.flipped ? 20 : 0);
+        return bScore - aScore;
+      });
+
+      lastResultsCache = results;
+      renderCards(results);
+      isFetching = false;
+      startCooldown(62);
+    }
+
+    // ページ読み込み時にAPIキー保存済みなら1回だけ自動実行
+    if (apiKey) {
+      checkAll(false);
+    } else {
+      renderHistory();
+    }
   </script>
 </body>
 </html>
