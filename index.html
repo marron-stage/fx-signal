@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>日足 QQE監視 & トレード記録</title>
+  <title>日足 QQE + 200EMA監視 & トレード記録</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -16,6 +16,7 @@
       --sell: #ef4444;
       --accent: #38bdf8;
       --warn: #facc15;
+      --hot: #f97316;
     }
     * { box-sizing: border-box; }
     body {
@@ -25,7 +26,7 @@
       background: var(--bg);
       color: var(--text);
     }
-    .container { max-width: 860px; margin: 0 auto; }
+    .container { max-width: 960px; margin: 0 auto; }
     header {
       display: flex;
       justify-content: space-between;
@@ -34,7 +35,7 @@
       gap: 10px;
       margin-bottom: 14px;
     }
-    h1 { font-size: 1.2rem; margin: 0; }
+    h1 { font-size: 1.18rem; margin: 0; }
     h2 { font-size: 1.05rem; margin: 24px 0 10px; border-left: 4px solid var(--accent); padding-left: 8px; }
     .controls {
       display: flex;
@@ -49,10 +50,11 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 8px 10px;
-      font-size: 0.88rem;
+      font-size: 0.86rem;
     }
     button { cursor: pointer; font-weight: 600; }
     button.primary { background: var(--accent); color: #0f172a; border: none; }
+    button.sub-btn { background: #334155; color: #e2e8f0; border: none; font-size: 0.8rem; }
     button.buy-btn { background: rgba(16, 185, 129, 0.2); border-color: var(--buy); color: #34d399; width: 100%; margin-top: 6px; }
     button.sell-btn { background: rgba(239, 68, 68, 0.2); border-color: var(--sell); color: #f87171; width: 100%; margin-top: 6px; }
     button.doten-btn { background: var(--warn); color: #0f172a; border: none; width: 100%; margin-top: 6px; font-weight: 800; }
@@ -66,8 +68,8 @@
       text-align: center;
       background: var(--card);
       border: 1px solid var(--border);
-      font-size: 0.92rem;
-      line-height: 1.5;
+      font-size: 0.9rem;
+      line-height: 1.55;
     }
     .banner.alert {
       background: rgba(250, 204, 21, 0.15);
@@ -76,7 +78,7 @@
     }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
       gap: 12px;
     }
     .card {
@@ -88,6 +90,10 @@
       flex-direction: column;
       justify-content: space-between;
     }
+    .card.hot {
+      border: 2px solid var(--hot);
+      box-shadow: 0 0 16px rgba(249, 115, 22, 0.3);
+    }
     .card.flipped {
       border: 2px solid var(--warn);
       box-shadow: 0 0 14px rgba(250, 204, 21, 0.22);
@@ -98,15 +104,15 @@
       align-items: center;
       margin-bottom: 6px;
     }
-    .pair-name { font-size: 1.08rem; font-weight: 700; }
+    .pair-name { font-size: 1.06rem; font-weight: 700; display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
     .del-btn { background: transparent; border: none; color: var(--muted); padding: 2px 6px; }
     .badge {
       display: inline-block;
       padding: 3px 9px;
       border-radius: 999px;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 700;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .badge.buy { background: rgba(16, 185, 129, 0.2); color: #34d399; }
     .badge.sell { background: rgba(239, 68, 68, 0.2); color: #f87171; }
@@ -114,19 +120,44 @@
       display: inline-block;
       background: var(--warn);
       color: #0f172a;
-      font-size: 0.72rem;
+      font-size: 0.7rem;
       font-weight: 800;
       padding: 2px 6px;
       border-radius: 4px;
-      margin-left: 6px;
+    }
+    .hot-tag {
+      display: inline-block;
+      background: var(--hot);
+      color: #ffffff;
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .ema-box {
+      font-size: 0.77rem;
+      padding: 5px 8px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    .ema-aligned {
+      background: rgba(249, 115, 22, 0.16);
+      border: 1px solid rgba(249, 115, 22, 0.45);
+      color: #fdba74;
+    }
+    .ema-counter {
+      background: rgba(148, 163, 184, 0.12);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      color: #94a3b8;
     }
     .lines {
       background: var(--card-sub);
       border-radius: 8px;
       padding: 7px 10px;
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       margin-bottom: 8px;
-      line-height: 1.5;
+      line-height: 1.55;
     }
     .pos-box {
       background: rgba(56, 189, 248, 0.1);
@@ -139,9 +170,8 @@
     }
     .plus { color: #34d399; font-weight: 700; }
     .minus { color: #f87171; font-weight: 700; }
-    .meta { font-size: 0.76rem; color: var(--muted); }
+    .meta { font-size: 0.75rem; color: var(--muted); }
 
-    /* 成績ダッシュボード & 履歴 */
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -192,15 +222,16 @@
 <body>
   <div class="container">
     <header>
-      <h1>📊 日足 QQE監視 & トレード記録</h1>
+      <h1>📊 日足 QQE + 200EMA監視 & トレード記録</h1>
       <button class="primary" onclick="checkAll()">最新データ更新</button>
     </header>
 
     <div id="statusBanner" class="banner">日足データを取得中...</div>
 
     <div class="controls">
-      <input id="pairInput" type="text" placeholder="通貨追加 (例: NZD/JPY)" style="width: 170px;" />
+      <input id="pairInput" type="text" placeholder="通貨追加 (例: SGD/JPY)" style="width: 165px;" />
       <button onclick="addPair()">＋ 追加</button>
+      <button class="sub-btn" onclick="resetTo18Pairs()">18通貨セット反映</button>
       <span class="meta" style="margin-left: auto;">基本ロット:</span>
       <select id="lotSelect" onchange="saveLot()">
         <option value="1000" selected>1,000通貨</option>
@@ -241,25 +272,35 @@
       SF <input id="sfParam" type="number" value="2" />
       <button onclick="checkAll()">再計算</button>
       <div style="margin-top: 6px;">
-        ※エントリー・ドテンボタンを押すと約定価格を入力（初期値は最新終値）して記録できます。円以外のペアは1pips=0.0001、クロス円は1pips=0.01で計算します。
+        ※「🔥 要チェック！」は、<strong>QQEのサイン方向と日足200EMAのトレンド方向（かつ200EMAの傾き）が一致</strong>している強い順張りチャンスを示します。
       </div>
     </div>
   </div>
 
   <script>
-    const DEFAULT_PAIRS = [
+    const DEFAULT_18_PAIRS = [
       "GBP/AUD", "USD/JPY", "EUR/USD",
       "GBP/JPY", "EUR/JPY", "AUD/USD",
-      "EUR/AUD", "AUD/JPY", "GBP/USD"
+      "EUR/AUD", "AUD/JPY", "GBP/USD",
+      "GBP/NZD", "EUR/NZD", "NZD/JPY",
+      "CAD/JPY", "CHF/JPY", "USD/CHF",
+      "EUR/GBP", "AUD/NZD", "EUR/CAD"
     ];
 
-    let pairs = JSON.parse(localStorage.getItem("qqe_glaz_pairs_v2")) || DEFAULT_PAIRS;
+    let pairs = JSON.parse(localStorage.getItem("qqe_glaz_pairs_v3")) || DEFAULT_18_PAIRS;
     let positions = JSON.parse(localStorage.getItem("qqe_positions")) || {};
     let history = JSON.parse(localStorage.getItem("qqe_history")) || [];
     let defaultLot = Number(localStorage.getItem("qqe_lot")) || 1000;
     document.getElementById("lotSelect").value = String(defaultLot);
 
     let latestRates = {};
+
+    function resetTo18Pairs() {
+      if (!confirm("監視通貨リストを標準の18通貨ペアに更新しますか？（トレード履歴は消えません）")) return;
+      pairs = [...DEFAULT_18_PAIRS];
+      localStorage.setItem("qqe_glaz_pairs_v3", JSON.stringify(pairs));
+      checkAll();
+    }
 
     function saveLot() {
       defaultLot = Number(document.getElementById("lotSelect").value) || 1000;
@@ -292,9 +333,17 @@
         if (latestRates[quoteJpyPair]) {
           jpyRate = latestRates[quoteJpyPair].close;
         } else if (quote === "USD") {
-          jpyRate = 150;
+          jpyRate = 153;
         } else if (quote === "AUD") {
           jpyRate = 100;
+        } else if (quote === "NZD") {
+          jpyRate = 90;
+        } else if (quote === "CAD") {
+          jpyRate = 110;
+        } else if (quote === "CHF") {
+          jpyRate = 175;
+        } else if (quote === "GBP") {
+          jpyRate = 195;
         }
       }
       const profitJpy = Math.round(diff * lot * jpyRate);
@@ -527,25 +576,43 @@
         slowTL[i] = trend1[i] === 1 ? longband1[i] : shortband1[i];
       }
 
+      // 200EMAの計算（過去320日分の営業日データから算出）
+      const ema200Arr = pineEma(closes, 200);
       const last = n - 1, prev = n - 2;
+      const closeNow = closes[last];
+      const ema200Now = ema200Arr[last];
+      const ema200Prev = ema200Arr[prev];
+
       const isBuyNow = fastTL[last] > slowTL[last];
       const wasBuyPrev = fastTL[prev] > slowTL[prev];
+
+      // 200EMAトレンド判定（価格が200EMAの上か下か + 200EMA自体の傾き）
+      const aboveEma = closeNow > ema200Now;
+      const emaRising = ema200Now >= ema200Prev;
+      const isStrongAligned = (isBuyNow && aboveEma && emaRising) || (!isBuyNow && !aboveEma && !emaRising);
+      const isBasicAligned = (isBuyNow && aboveEma) || (!isBuyNow && !aboveEma);
+
+      const decimals = closeNow > 20 ? 2 : 4;
 
       return {
         isBuy: isBuyNow,
         flipped: isBuyNow !== wasBuyPrev,
         greenFast: fastTL[last].toFixed(2),
         redSlow: slowTL[last].toFixed(2),
-        close: closes[last]
+        close: closeNow,
+        ema200: ema200Now.toFixed(decimals),
+        aboveEma,
+        emaRising,
+        isStrongAligned,
+        isBasicAligned
       };
     }
 
     async function fetchDailyCloses(base, quote) {
-      // 日本時間基準で「明日」までを終了日にし、最新確定日足を確実に取得する
+      // 200EMAを精度よく計算するため、約330日分（営業日約235日分）を取得
       const end = new Date(Date.now() + 9 * 60 * 60 * 1000 + 24 * 60 * 60 * 1000);
-      const start = new Date(end.getTime() - 180 * 24 * 60 * 60 * 1000);
+      const start = new Date(end.getTime() - 335 * 24 * 60 * 60 * 1000);
       const fmt = d => d.toISOString().split("T")[0];
-      // キャッシュ回避用のタイムスタンプを付与
       const url = `https://api.frankfurter.dev/v1/${fmt(start)}..${fmt(end)}?base=${base}&symbols=${quote}&_=${Date.now()}`;
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error("取得失敗");
@@ -561,7 +628,7 @@
       const banner = document.getElementById("statusBanner");
       const grid = document.getElementById("cards");
       banner.className = "banner";
-      banner.textContent = "各通貨の最新日足データを取得中...";
+      banner.textContent = "18通貨の最新日足・200EMAデータを取得中...";
       grid.innerHTML = "";
 
       const fast = Number(document.getElementById("fastParam").value) || 2.618;
@@ -569,36 +636,43 @@
       const rsiLen = Number(document.getElementById("rsiParam").value) || 14;
       const sf = Number(document.getElementById("sfParam").value) || 2;
 
-      const results = [];
-      for (const pair of pairs) {
+      // 18通貨を並列で高速取得
+      const results = await Promise.all(pairs.map(async (pair) => {
         const [base, quote] = pair.split("/");
         try {
           const { dates, closes } = await fetchDailyCloses(base, quote);
           const qqe = calcGlazQQE(closes, fast, slow, rsiLen, sf);
           const lastDate = dates[dates.length - 1];
           latestRates[pair] = { close: qqe.close, date: lastDate };
-          results.push({ pair, lastDate, ...qqe });
+          return { pair, lastDate, ...qqe };
         } catch (err) {
-          results.push({ pair, error: true });
+          return { pair, error: true };
         }
-      }
+      }));
 
+      // 優先度順に自動ソート：
+      // 1. ドテン要対応 2. 転換＋200EMA強トレンド一致 3. 新規転換 4. 200EMA強トレンド継続中
       results.sort((a, b) => {
-        const aNeedDoten = !a.error && positions[a.pair] && ((positions[a.pair].side === "BUY") !== a.isBuy);
-        const bNeedDoten = !b.error && positions[b.pair] && ((positions[b.pair].side === "BUY") !== b.isBuy);
-        if (aNeedDoten !== bNeedDoten) return bNeedDoten ? 1 : -1;
-        return (b.flipped ? 1 : 0) - (a.flipped ? 1 : 0);
+        if (a.error) return 1;
+        if (b.error) return -1;
+        const aDoten = positions[a.pair] && ((positions[a.pair].side === "BUY") !== a.isBuy) ? 100 : 0;
+        const bDoten = positions[b.pair] && ((positions[b.pair].side === "BUY") !== b.isBuy) ? 100 : 0;
+        const aScore = aDoten + (a.flipped ? 20 : 0) + (a.isStrongAligned ? 10 : (a.isBasicAligned ? 5 : 0));
+        const bScore = bDoten + (b.flipped ? 20 : 0) + (b.isStrongAligned ? 10 : (b.isBasicAligned ? 5 : 0));
+        return bScore - aScore;
       });
 
       const validResult = results.find(r => !r.error);
-      const dataDateLabel = validResult ? `（最新確定足: ${validResult.lastDate}）` : "";
+      const dataDateLabel = validResult ? `最新確定足: ${validResult.lastDate}` : "";
 
       const flippedPairs = results.filter(r => !r.error && r.flipped);
+      const hotPairs = results.filter(r => !r.error && r.isStrongAligned);
+
       if (flippedPairs.length > 0) {
         banner.className = "banner alert";
-        banner.innerHTML = `🔔 シグナル転換あり: ${flippedPairs.map(p => p.pair).join(", ")}<br><span class="meta">${dataDateLabel}</span>`;
+        banner.innerHTML = `🔔 シグナル転換: ${flippedPairs.map(p => p.pair).join(", ")}<br><span class="meta">🔥 200EMA順張りトレンド一致: ${hotPairs.length}通貨 (${dataDateLabel})</span>`;
       } else {
-        banner.innerHTML = `✅ 新規の緑・赤入れ替わりはありません<br><span class="meta">${dataDateLabel}</span>`;
+        banner.innerHTML = `✅ 新規の転換はありません ／ 🔥 200EMA順張りトレンド一致: ${hotPairs.length}通貨<br><span class="meta">${dataDateLabel}</span>`;
       }
 
       for (const r of results) {
@@ -607,7 +681,10 @@
         const currentSignalSide = r.isBuy ? "BUY" : "SELL";
         const isDotenTime = pos && pos.side !== currentSignalSide;
 
-        card.className = "card" + ((r.flipped || isDotenTime) ? " flipped" : "");
+        let cardClass = "card";
+        if (r.flipped || isDotenTime) cardClass += " flipped";
+        else if (r.isStrongAligned) cardClass += " hot";
+        card.className = cardClass;
 
         if (r.error) {
           card.innerHTML = `
@@ -641,10 +718,20 @@
             `;
           }
 
+          const emaStatusText = r.isStrongAligned
+            ? `🔥 要チェック！200EMA順張り (${r.aboveEma ? "上抜け・右肩上がり" : "下抜け・右肩下がり"})`
+            : r.isBasicAligned
+              ? `👍 200EMA同方向 (${r.aboveEma ? "200EMAより上" : "200EMAより下"})`
+              : `⚠️ 200EMAと逆向き (${r.aboveEma ? "価格は200EMA上" : "価格は200EMA下"})`;
+
           card.innerHTML = `
             <div>
               <div class="pair-row">
-                <span class="pair-name">${r.pair}${r.flipped ? '<span class="flip-tag">転換！</span>' : ""}</span>
+                <span class="pair-name">
+                  ${r.pair}
+                  ${r.flipped ? '<span class="flip-tag">転換！</span>' : ""}
+                  ${r.isStrongAligned ? '<span class="hot-tag">🔥要チェック</span>' : ""}
+                </span>
                 <button class="del-btn" onclick="removePair('${r.pair}')">✕</button>
               </div>
               <div>
@@ -652,9 +739,12 @@
                   ${r.isBuy ? "▲ BUY（緑が上）" : "▼ SELL（赤が上）"}
                 </span>
               </div>
+              <div class="ema-box ${r.isBasicAligned ? "ema-aligned" : "ema-counter"}">
+                ${emaStatusText}
+              </div>
               <div class="lines">
                 🟢 緑: <strong style="color:#34d399">${r.greenFast}</strong> / 🔴 赤: <strong style="color:#f87171">${r.redSlow}</strong><br>
-                現在終値: <strong>${r.close}</strong> <span class="meta">(${r.lastDate})</span>
+                終値: <strong>${r.close}</strong> ／ 200EMA: <strong>${r.ema200}</strong> <span class="meta">(${r.lastDate})</span>
               </div>
             </div>
             ${positionHtml}
@@ -670,13 +760,13 @@
       const input = document.getElementById("pairInput");
       const raw = input.value.trim().toUpperCase().replace(/[^A-Z]/g, "");
       if (raw.length !== 6) {
-        alert("6文字の通貨ペアを入力してください（例: NZD/JPY）");
+        alert("6文字の通貨ペアを入力してください（例: SGD/JPY）");
         return;
       }
       const formatted = `${raw.slice(0, 3)}/${raw.slice(3, 6)}`;
       if (!pairs.includes(formatted)) {
         pairs.push(formatted);
-        localStorage.setItem("qqe_glaz_pairs_v2", JSON.stringify(pairs));
+        localStorage.setItem("qqe_glaz_pairs_v3", JSON.stringify(pairs));
       }
       input.value = "";
       checkAll();
@@ -684,7 +774,7 @@
 
     function removePair(pair) {
       pairs = pairs.filter(p => p !== pair);
-      localStorage.setItem("qqe_glaz_pairs_v2", JSON.stringify(pairs));
+      localStorage.setItem("qqe_glaz_pairs_v3", JSON.stringify(pairs));
       checkAll();
     }
 
