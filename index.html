@@ -31,11 +31,12 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       margin-bottom: 10px;
     }
-    h1 { font-size: 1.02rem; margin: 0; }
-    h2 { font-size: 0.98rem; margin: 20px 0 8px; border-left: 4px solid var(--accent); padding-left: 8px; }
+    h1 { font-size: 1rem; margin: 0; }
+    h2 { font-size: 0.96rem; margin: 20px 0 8px; border-left: 4px solid var(--accent); padding-left: 8px; }
+    .header-btns { display: flex; gap: 6px; align-items: center; }
     .controls {
       display: flex;
       gap: 6px;
@@ -43,17 +44,23 @@
       margin-bottom: 10px;
       align-items: center;
     }
-    input, select, button {
+    select, button {
       background: var(--card);
       color: var(--text);
       border: 1px solid var(--border);
       border-radius: 7px;
       padding: 6px 8px;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
     }
     button { cursor: pointer; font-weight: 600; }
     button.primary { background: var(--accent); color: #0f172a; border: none; padding: 7px 12px; }
-    button.sub-btn { background: #334155; color: #e2e8f0; border: none; font-size: 0.75rem; }
+    button.reset-btn {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.45);
+      color: #fca5a5;
+      font-size: 0.74rem;
+      padding: 6px 9px;
+    }
     button.buy-btn {
       background: rgba(16, 185, 129, 0.22);
       border-color: var(--buy);
@@ -126,7 +133,7 @@
       color: #fef08a;
     }
 
-    /* スマホでも横2列、タブレット・PCで横3〜4列に収めるグリッド */
+    /* スマホでも横2列、タブレット・PCで横3〜4列 */
     .grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -324,23 +331,33 @@
       font-size: 0.75rem;
       color: var(--muted);
     }
-    .settings input { width: 58px; padding: 3px 5px; margin: 3px 5px 3px 2px; font-size: 0.75rem; }
+    .settings input {
+      background: var(--card-sub);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      width: 58px;
+      padding: 3px 5px;
+      margin: 3px 5px 3px 2px;
+      font-size: 0.75rem;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>📊 日足 QQE + 200EMA (厳選7通貨)</h1>
-      <button class="primary" onclick="checkAll()">更新</button>
+      <h1>📊 日足 QQE + 200EMA (7通貨)</h1>
+      <div class="header-btns">
+        <button class="reset-btn" onclick="resetAllRecords()">記録リセット</button>
+        <button class="primary" onclick="checkAll()">更新</button>
+      </div>
     </header>
 
     <div id="statusBanner" class="banner">日足データを取得中...</div>
 
     <div class="controls">
-      <input id="pairInput" type="text" placeholder="追加 (例: GBP/AUD)" style="width: 135px;" />
-      <button onclick="addPair()">＋追加</button>
-      <button class="sub-btn" onclick="resetTo7Pairs()">7通貨に戻す</button>
-      <span class="meta" style="margin-left: auto;">ロット:</span>
+      <span class="meta">流動性トップ7通貨固定</span>
+      <span class="meta" style="margin-left: auto;">基本ロット:</span>
       <select id="lotSelect" onchange="saveLot()">
         <option value="1000" selected>1,000通貨</option>
         <option value="2000">2,000通貨</option>
@@ -383,8 +400,8 @@
   </div>
 
   <script>
-    // 流動性トップ7通貨ペア
-    const DEFAULT_7_PAIRS = [
+    // 流動性トップ7通貨ペアに固定
+    const PAIRS = [
       "EUR/USD",
       "USD/JPY",
       "GBP/USD",
@@ -394,7 +411,6 @@
       "AUD/JPY"
     ];
 
-    // 英語・日本語表記辞書（楽天証券 iSPEED FX 準拠）
     const CURRENCY_JP = {
       USD: "ドル",
       JPY: "円",
@@ -403,15 +419,7 @@
       AUD: "豪ドル",
       NZD: "NZドル",
       CAD: "カナダドル",
-      CHF: "スイス",
-      SGD: "SGドル",
-      ZAR: "ランド",
-      MXN: "メキシコペソ",
-      TRY: "トルコリラ",
-      CNH: "人民元",
-      HKD: "香港ドル",
-      NOK: "Nクローネ",
-      SEK: "Sクローナ"
+      CHF: "スイス"
     };
 
     function getPairJpName(pair) {
@@ -421,7 +429,6 @@
       return `${bJp}/${qJp}`;
     }
 
-    let pairs = JSON.parse(localStorage.getItem("qqe_glaz_pairs_7_v1")) || DEFAULT_7_PAIRS;
     let positions = JSON.parse(localStorage.getItem("qqe_positions")) || {};
     let history = JSON.parse(localStorage.getItem("qqe_history")) || [];
     let defaultLot = Number(localStorage.getItem("qqe_lot")) || 1000;
@@ -429,10 +436,15 @@
 
     let latestRates = {};
 
-    function resetTo7Pairs() {
-      if (!confirm("監視リストを流動性トップ7通貨に戻しますか？（トレード履歴は消えません）")) return;
-      pairs = [...DEFAULT_7_PAIRS];
-      localStorage.setItem("qqe_glaz_pairs_7_v1", JSON.stringify(pairs));
+    // 保有中ポジション・トレード履歴・旧通貨リストをすべて一括初期化
+    function resetAllRecords() {
+      if (!confirm("保有中のポジションとトレード履歴をすべてリセット（全消去）しますか？")) return;
+      positions = {};
+      history = [];
+      localStorage.removeItem("qqe_positions");
+      localStorage.removeItem("qqe_history");
+      localStorage.removeItem("qqe_glaz_pairs_v3");
+      localStorage.removeItem("qqe_glaz_pairs_7_v1");
       checkAll();
     }
 
@@ -470,14 +482,6 @@
           jpyRate = 153;
         } else if (quote === "AUD") {
           jpyRate = 100;
-        } else if (quote === "NZD") {
-          jpyRate = 90;
-        } else if (quote === "CAD") {
-          jpyRate = 110;
-        } else if (quote === "CHF") {
-          jpyRate = 175;
-        } else if (quote === "GBP") {
-          jpyRate = 195;
         }
       }
       const profitJpy = Math.round(diff * lot * jpyRate);
@@ -779,7 +783,7 @@
       const rsiLen = Number(document.getElementById("rsiParam").value) || 14;
       const sf = Number(document.getElementById("sfParam").value) || 2;
 
-      const results = await Promise.all(pairs.map(async (pair) => {
+      const results = await Promise.all(PAIRS.map(async (pair) => {
         const [base, quote] = pair.split("/");
         try {
           const { dates, closes } = await fetchDailyCloses(base, quote);
@@ -834,7 +838,6 @@
                 <span class="pair-en">${r.pair}</span>
                 <span class="pair-jp">${r.jpName}</span>
               </div>
-              <button class="del-btn" onclick="removePair('${r.pair}')">✕</button>
             </div>
             <div class="meta">取得エラー</div>
           `;
@@ -883,7 +886,6 @@
                   <span class="pair-en">${r.pair}</span>
                   <span class="pair-jp">${r.jpName}</span>
                 </div>
-                <button class="del-btn" onclick="removePair('${r.pair}')">✕</button>
               </div>
               <div class="tags-row">
                 <span class="badge ${r.isBuy ? "buy" : "sell"}">
@@ -908,28 +910,6 @@
       }
 
       renderHistory();
-    }
-
-    function addPair() {
-      const input = document.getElementById("pairInput");
-      const raw = input.value.trim().toUpperCase().replace(/[^A-Z]/g, "");
-      if (raw.length !== 6) {
-        alert("6文字の通貨ペアを入力してください（例: GBP/AUD）");
-        return;
-      }
-      const formatted = `${raw.slice(0, 3)}/${raw.slice(3, 6)}`;
-      if (!pairs.includes(formatted)) {
-        pairs.push(formatted);
-        localStorage.setItem("qqe_glaz_pairs_7_v1", JSON.stringify(pairs));
-      }
-      input.value = "";
-      checkAll();
-    }
-
-    function removePair(pair) {
-      pairs = pairs.filter(p => p !== pair);
-      localStorage.setItem("qqe_glaz_pairs_7_v1", JSON.stringify(pairs));
-      checkAll();
     }
 
     checkAll();
