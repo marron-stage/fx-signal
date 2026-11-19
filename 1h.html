@@ -99,8 +99,8 @@
       color: #34d399;
       width: 100%;
       margin-top: 5px;
-      padding: 6px 4px;
-      font-size: 0.75rem;
+      padding: 7px 4px;
+      font-size: 0.78rem;
     }
     button.sell-btn {
       background: rgba(239, 68, 68, 0.22);
@@ -108,39 +108,30 @@
       color: #f87171;
       width: 100%;
       margin-top: 5px;
-      padding: 6px 4px;
-      font-size: 0.75rem;
+      padding: 7px 4px;
+      font-size: 0.78rem;
     }
-    button.counter-btn {
-      background: transparent;
-      border: 1px dashed var(--border);
-      color: var(--muted);
-      width: 100%;
-      margin-top: 4px;
-      padding: 3px 4px;
-      font-size: 0.68rem;
-      font-weight: 500;
-      border-radius: 5px;
-    }
-    button.doten-btn {
-      background: var(--warn);
+    button.close-buy-btn {
+      background: #10b981;
       color: #0f172a;
       border: none;
       width: 100%;
-      margin-top: 5px;
+      margin-top: 6px;
       padding: 6px 4px;
-      font-size: 0.74rem;
+      font-size: 0.75rem;
       font-weight: 800;
     }
-    button.close-btn {
-      background: #334155;
-      color: #f8fafc;
+    button.close-sell-btn {
+      background: #ef4444;
+      color: #ffffff;
       border: none;
       width: 100%;
-      margin-top: 4px;
-      padding: 5px 4px;
-      font-size: 0.72rem;
+      margin-top: 6px;
+      padding: 6px 4px;
+      font-size: 0.75rem;
+      font-weight: 800;
     }
+    button:active { opacity: 0.85; }
 
     .banner {
       padding: 9px 10px;
@@ -220,15 +211,6 @@
       font-weight: 800;
       padding: 2px 5px;
       border-radius: 4px;
-    }
-    .counter-tag {
-      display: inline-block;
-      background: rgba(148, 163, 184, 0.2);
-      color: #cbd5e1;
-      font-size: 0.64rem;
-      padding: 1px 4px;
-      border-radius: 4px;
-      margin-left: 3px;
     }
 
     .cond-box {
@@ -345,9 +327,9 @@
         <thead>
           <tr>
             <th>通貨</th>
-            <th>売買</th>
-            <th>エントリー</th>
-            <th>決済</th>
+            <th>取引内容</th>
+            <th>開始価格</th>
+            <th>終了価格</th>
             <th>獲得pips</th>
             <th>損益(目安)</th>
             <th></th>
@@ -478,54 +460,37 @@
       return { pips: Number(pips.toFixed(1)), profitJpy };
     }
 
-    function openPosition(pair, side, isCounter = false) {
+    // 新規エントリー（BUY または SELL）
+    function openPosition(pair, side) {
       const jp = getPairJpName(pair);
       const suggested = latestRates[pair] || "";
-      const input = prompt(`${isCounter ? "【逆張り】" : ""}${pair}（${jp}）の ${side} エントリー価格:`, suggested);
+      const actionText = side === "BUY" ? "買う（BUY）" : "売る（SELL）";
+      const input = prompt(`${pair}（${jp}）を ${actionText} 価格を入力してください:`, suggested);
       if (input === null) return;
       const price = parseFloat(input);
       if (isNaN(price) || price <= 0) return alert("正しい価格を入力してください");
-      positions[pair] = { side, entryPrice: price, entryDate: getNowStr(), lot: defaultLot, isCounter };
+      positions[pair] = { side, entryPrice: price, entryDate: getNowStr(), lot: defaultLot };
       saveTradeData();
       if (lastResultsCache.length > 0) renderCards(lastResultsCache);
     }
 
+    // 決済して取引終了（買ったものは売る、売ったものは買う）
     function closePosition(pair) {
       const pos = positions[pair];
       if (!pos) return;
       const jp = getPairJpName(pair);
       const suggested = latestRates[pair] || pos.entryPrice;
-      const input = prompt(`${pair}（${jp} / ${pos.side} @ ${pos.entryPrice}）の決済価格:`, suggested);
+      const closeActionText = pos.side === "BUY" ? "売って決済（取引終了）" : "買って決済（取引終了）";
+      const input = prompt(`${pair}（${jp}）を ${closeActionText} する価格を入力してください:`, suggested);
       if (input === null) return;
       const exitPrice = parseFloat(input);
       if (isNaN(exitPrice) || exitPrice <= 0) return alert("正しい価格を入力してください");
       const { pips, profitJpy } = calcPnL(pair, pos.side, pos.entryPrice, exitPrice, pos.lot);
       history.unshift({
         id: Date.now(), pair, side: pos.side, entryPrice: pos.entryPrice, entryDate: pos.entryDate,
-        exitPrice, exitDate: getNowStr(), pips, profitJpy, lot: pos.lot, isCounter: Boolean(pos.isCounter)
+        exitPrice, exitDate: getNowStr(), pips, profitJpy, lot: pos.lot
       });
       delete positions[pair];
-      saveTradeData();
-      renderHistory();
-      if (lastResultsCache.length > 0) renderCards(lastResultsCache);
-    }
-
-    function dotenPosition(pair, newSide) {
-      const pos = positions[pair];
-      if (!pos) return openPosition(pair, newSide, false);
-      const jp = getPairJpName(pair);
-      const suggested = latestRates[pair] || pos.entryPrice;
-      const input = prompt(`【ドテン実行】${pair}（${jp}）\n現在の ${pos.side} (${pos.entryPrice}) を決済し、新しく ${newSide} を入れます:`, suggested);
-      if (input === null) return;
-      const price = parseFloat(input);
-      if (isNaN(price) || price <= 0) return alert("正しい価格を入力してください");
-      const { pips, profitJpy } = calcPnL(pair, pos.side, pos.entryPrice, price, pos.lot);
-      const nowStr = getNowStr();
-      history.unshift({
-        id: Date.now(), pair, side: pos.side, entryPrice: pos.entryPrice, entryDate: pos.entryDate,
-        exitPrice: price, exitDate: nowStr, pips, profitJpy, lot: pos.lot, isCounter: Boolean(pos.isCounter)
-      });
-      positions[pair] = { side: newSide, entryPrice: price, entryDate: nowStr, lot: defaultLot, isCounter: false };
       saveTradeData();
       renderHistory();
       if (lastResultsCache.length > 0) renderCards(lastResultsCache);
@@ -552,24 +517,25 @@
       const profitClass = totalProfit >= 0 ? "plus" : "minus";
 
       statsGrid.innerHTML = `
-        <div class="stat-card"><div class="stat-label">決済回数</div><div class="stat-val">${totalTrades}回</div></div>
+        <div class="stat-card"><div class="stat-label">取引回数</div><div class="stat-val">${totalTrades}回</div></div>
         <div class="stat-card"><div class="stat-label">勝率</div><div class="stat-val">${winRate}%</div></div>
         <div class="stat-card"><div class="stat-label">累計pips</div><div class="stat-val ${pipsClass}">${Number(totalPips) >= 0 ? "+" : ""}${totalPips}</div></div>
         <div class="stat-card"><div class="stat-label">累計損益(目安)</div><div class="stat-val ${profitClass}">${totalProfit >= 0 ? "+" : ""}${totalProfit.toLocaleString()}円</div></div>
       `;
 
       if (history.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--muted); padding: 14px;">まだ決済済みの記録はありません。</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--muted); padding: 14px;">まだ終了した取引記録はありません。</td></tr>`;
         return;
       }
 
       tbody.innerHTML = history.map(h => {
         const isWin = h.pips >= 0;
         const jp = getPairJpName(h.pair);
+        const flowText = h.side === "BUY" ? "買い → 売り" : "売り → 買い";
         return `
           <tr>
             <td><strong>${h.pair}</strong> <span class="meta">${jp}</span><br><span class="meta">${h.lot.toLocaleString()}通貨</span></td>
-            <td><span class="badge ${h.side === "BUY" ? "buy" : "sell"}">${h.side}</span>${h.isCounter ? '<span class="counter-tag">逆張り</span>' : ""}</td>
+            <td><span class="badge ${h.side === "BUY" ? "buy" : "sell"}">${flowText}</span></td>
             <td>${h.entryDate}<br><strong>${h.entryPrice}</strong></td>
             <td>${h.exitDate}<br><strong>${h.exitPrice}</strong></td>
             <td class="${isWin ? "plus" : "minus"}">${isWin ? "+" : ""}${h.pips} pips</td>
@@ -747,12 +713,10 @@
         const card = document.createElement("div");
         const pos = positions[r.code];
         const currentSignalSide = r.isBuy ? "BUY" : "SELL";
-        const counterSignalSide = r.isBuy ? "SELL" : "BUY";
-        const isDotenTime = pos && !pos.isCounter && pos.side !== currentSignalSide;
 
         let cardClass = "card";
         if (r.isGo) cardClass += " go";
-        else if (r.flipped || isDotenTime) cardClass += " flipped";
+        else if (r.flipped) cardClass += " flipped";
         card.className = cardClass;
 
         if (r.error) {
@@ -766,25 +730,26 @@
           if (pos) {
             const pnl = calcPnL(r.code, pos.side, pos.entryPrice, r.close, pos.lot);
             const isPlus = pnl.pips >= 0;
+            const statusLabel = pos.side === "BUY" ? "🟢 買い保有中" : "🔴 売り保有中";
+            const closeBtnClass = pos.side === "BUY" ? "close-sell-btn" : "close-buy-btn";
+            const closeBtnText = pos.side === "BUY" ? "💰 売って決済（終了）" : "💰 買って決済（終了）";
+
             positionHtml = `
               <div class="pos-box">
-                <div><strong>保有: ${pos.side}</strong>${pos.isCounter ? '<span class="counter-tag">逆張り</span>' : ""}</div>
-                <div class="meta">${pos.entryPrice} (${pos.lot.toLocaleString()})</div>
+                <div><strong>${statusLabel}</strong></div>
+                <div class="meta">開始: ${pos.entryPrice} (${pos.lot.toLocaleString()})</div>
                 <div>損益: <span class="${isPlus ? "plus" : "minus"}">${isPlus ? "+" : ""}${pnl.pips}p (${isPlus ? "+" : ""}${pnl.profitJpy.toLocaleString()}円)</span></div>
-                ${isDotenTime
-                  ? `<button class="doten-btn" onclick="dotenPosition('${r.code}', '${currentSignalSide}')">🔄 ドテン${currentSignalSide}</button>`
-                  : `<button class="close-btn" onclick="closePosition('${r.code}')">決済記録</button>`
-                }
+                <button class="${closeBtnClass}" onclick="closePosition('${r.code}')">${closeBtnText}</button>
               </div>
             `;
           } else {
+            const openBtnClass = r.isBuy ? "buy-btn" : "sell-btn";
+            const openBtnText = r.isBuy ? "📥 買う（BUY 記録）" : "📥 売る（SELL 記録）";
+
             positionHtml = `
               <div>
-                <button class="${r.isBuy ? "buy-btn" : "sell-btn"}" onclick="openPosition('${r.code}', '${currentSignalSide}', false)">
-                  📥 ${currentSignalSide} 記録
-                </button>
-                <button class="counter-btn" onclick="openPosition('${r.code}', '${counterSignalSide}', true)">
-                  ↩ 逆張り${counterSignalSide}
+                <button class="${openBtnClass}" onclick="openPosition('${r.code}', '${currentSignalSide}')">
+                  ${openBtnText}
                 </button>
               </div>
             `;
@@ -875,7 +840,6 @@
       startCooldown(62);
     }
 
-    // ページ読み込み時にAPIキー保存済みなら1回だけ自動実行
     if (apiKey) {
       checkAll(false);
     } else {
