@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>1時間足 QQE シグナル (8通貨)</title>
+  <title>1時間足 QQE + MACD(5・20・9) シグナル (8通貨)</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -16,25 +16,26 @@
       --sell: #ef4444;
       --accent: #38bdf8;
       --warn: #facc15;
+      --hot: #f97316;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      padding: 12px;
+      padding: 10px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
     }
-    .container { max-width: 900px; margin: 0 auto; }
+    .container { max-width: 960px; margin: 0 auto; }
     header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 6px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       flex-wrap: wrap;
     }
-    h1 { font-size: 1.02rem; margin: 0; }
+    h1 { font-size: 0.98rem; margin: 0; }
     .header-btns { display: flex; gap: 6px; align-items: center; }
     .nav-link {
       background: #334155;
@@ -42,7 +43,7 @@
       text-decoration: none;
       padding: 6px 9px;
       border-radius: 7px;
-      font-size: 0.75rem;
+      font-size: 0.74rem;
       font-weight: 600;
     }
     .api-bar {
@@ -53,7 +54,7 @@
       border: 1px solid var(--border);
       padding: 7px 9px;
       border-radius: 8px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       flex-wrap: wrap;
     }
     .api-bar input {
@@ -72,7 +73,7 @@
       border: 1px solid var(--border);
       border-radius: 7px;
       padding: 6px 10px;
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       font-weight: 600;
       cursor: pointer;
     }
@@ -81,130 +82,187 @@
     button:active { opacity: 0.85; }
 
     .banner {
-      padding: 10px;
+      padding: 9px 10px;
       border-radius: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       font-weight: 700;
       text-align: center;
       background: var(--card);
       border: 1px solid var(--border);
-      font-size: 0.84rem;
+      font-size: 0.82rem;
       line-height: 1.45;
     }
     .banner.alert {
-      background: rgba(250, 204, 21, 0.16);
-      border-color: var(--warn);
-      color: #fef08a;
+      background: rgba(249, 115, 22, 0.18);
+      border-color: var(--hot);
+      color: #fed7aa;
     }
-    .meta { font-size: 0.7rem; color: var(--muted); font-weight: 400; }
+    .meta { font-size: 0.69rem; color: var(--muted); font-weight: 400; }
 
-    /* スマホ横2列×4段・PC横4列×2段 */
+    /* スマホ横2列・PC横3〜4列 */
     .grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 9px;
+      gap: 8px;
     }
-    @media (min-width: 700px) {
-      .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 11px; }
+    @media (min-width: 720px) {
+      .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    }
+    @media (min-width: 940px) {
+      .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     }
 
     .card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 10px;
+      padding: 9px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       min-width: 0;
     }
-    .card.buy-card {
-      border-color: rgba(16, 185, 129, 0.45);
-      background: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, var(--card) 100%);
+    .card.go-buy {
+      border: 2px solid var(--buy);
+      background: linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, var(--card) 100%);
     }
-    .card.sell-card {
-      border-color: rgba(239, 68, 68, 0.45);
-      background: linear-gradient(180deg, rgba(239, 68, 68, 0.08) 0%, var(--card) 100%);
+    .card.go-sell {
+      border: 2px solid var(--sell);
+      background: linear-gradient(180deg, rgba(239, 68, 68, 0.1) 0%, var(--card) 100%);
     }
-    .card.flipped {
+    .card.early {
       border: 2px solid var(--warn);
-      box-shadow: 0 0 12px rgba(250, 204, 21, 0.25);
     }
 
     .pair-title {
       display: flex;
       flex-direction: column;
       line-height: 1.2;
-      margin-bottom: 6px;
+      margin-bottom: 5px;
     }
-    .pair-en { font-size: 0.96rem; font-weight: 800; }
-    .pair-jp { font-size: 0.74rem; color: #cbd5e1; font-weight: 600; margin-top: 1px; }
+    .pair-en { font-size: 0.94rem; font-weight: 800; }
+    .pair-jp { font-size: 0.72rem; color: #cbd5e1; font-weight: 600; margin-top: 1px; }
 
-    .flip-tag {
-      display: inline-block;
-      background: var(--warn);
-      color: #0f172a;
-      font-size: 0.68rem;
-      font-weight: 800;
-      padding: 2px 6px;
-      border-radius: 4px;
-      margin-bottom: 6px;
-      width: fit-content;
-    }
-
-    .signal-box {
+    .status-pill {
+      display: block;
       text-align: center;
-      padding: 9px 6px;
-      border-radius: 7px;
-      font-size: 0.94rem;
+      padding: 6px 4px;
+      border-radius: 6px;
+      font-size: 0.82rem;
       font-weight: 900;
-      margin-bottom: 7px;
-      letter-spacing: 0.02em;
+      margin-bottom: 6px;
     }
-    .signal-buy {
-      background: rgba(16, 185, 129, 0.22);
+    .pill-go-buy {
+      background: rgba(16, 185, 129, 0.24);
       color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.5);
+      border: 1px solid rgba(16, 185, 129, 0.55);
     }
-    .signal-sell {
-      background: rgba(239, 68, 68, 0.22);
+    .pill-go-sell {
+      background: rgba(239, 68, 68, 0.24);
       color: #f87171;
-      border: 1px solid rgba(239, 68, 68, 0.5);
+      border: 1px solid rgba(239, 68, 68, 0.55);
+    }
+    .pill-early {
+      background: rgba(250, 204, 21, 0.2);
+      color: #fef08a;
+      border: 1px solid rgba(250, 204, 21, 0.5);
+    }
+    .pill-wait {
+      background: rgba(148, 163, 184, 0.14);
+      color: #cbd5e1;
+      border: 1px solid rgba(148, 163, 184, 0.3);
     }
 
-    .rates-box {
+    .ind-box {
       background: var(--card-sub);
       border-radius: 6px;
-      padding: 5px 7px;
-      font-size: 0.72rem;
+      padding: 5px 6px;
+      font-size: 0.69rem;
       line-height: 1.45;
+      margin-bottom: 6px;
       color: #cbd5e1;
+    }
+    .up-txt { color: #34d399; font-weight: 700; }
+    .down-txt { color: #f87171; font-weight: 700; }
+
+    .price-targets {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .target-row {
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 4px;
+    }
+    .target-info {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+      min-width: 0;
+    }
+    .target-label {
+      font-size: 0.64rem;
+      font-weight: 700;
+    }
+    .tp-label { color: #34d399; }
+    .sl-label { color: #f87171; }
+    .target-val {
+      font-size: 0.84rem;
+      font-weight: 800;
+      color: #f8fafc;
+      font-variant-numeric: tabular-nums;
+    }
+    .target-pips {
+      font-size: 0.62rem;
+      color: var(--muted);
+    }
+    .copy-btn {
+      background: #334155;
+      color: #f8fafc;
+      border: none;
+      border-radius: 5px;
+      padding: 5px 7px;
+      font-size: 0.66rem;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .copy-btn.copied {
+      background: #10b981;
+      color: #0f172a;
     }
 
     .settings {
-      margin-top: 16px;
+      margin-top: 14px;
       padding: 10px;
       background: var(--card);
       border-radius: 8px;
-      font-size: 0.75rem;
+      font-size: 0.74rem;
       color: var(--muted);
+      line-height: 1.5;
     }
     .settings input {
       background: var(--card-sub);
       color: var(--text);
       border: 1px solid var(--border);
       border-radius: 5px;
-      width: 58px;
+      width: 56px;
       padding: 3px 5px;
       margin: 3px 5px 3px 2px;
-      font-size: 0.75rem;
+      font-size: 0.74rem;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>⏱ 1時間足 QQE シグナル (8通貨)</h1>
+      <h1>⏱ 1H QQE + MACD(5・20・9)</h1>
       <div class="header-btns">
         <a href="./index.html" class="nav-link">📊 日足へ</a>
         <button id="updateBtn" class="primary" onclick="checkAll()">更新</button>
@@ -223,14 +281,13 @@
     <div id="cards" class="grid"></div>
 
     <div class="settings">
-      <strong>Glaz QQE 設定:</strong>
-      Fast <input id="fastParam" type="number" step="0.0001" value="2.6180" />
+      <strong>設定（目安計算・QQE）:</strong><br>
+      利確倍率 <input id="rrRatio" type="number" step="0.1" value="1.5" />倍（損切り幅に対して）
+      ／ Fast <input id="fastParam" type="number" step="0.0001" value="2.6180" />
       Slow <input id="slowParam" type="number" step="0.0001" value="4.2360" />
-      RSI <input id="rsiParam" type="number" value="14" />
-      SF <input id="sfParam" type="number" value="2" />
       <button onclick="checkAll()">再計算</button>
-      <div style="margin-top: 5px;">
-        ※8通貨＝1回の更新で8クレジット消費（無料枠の1分上限ちょうど）のため、更新後62秒間ロックされます。
+      <div style="margin-top: 4px;">
+        ※損切りは「直近6時間の最安値(最高値)の少し外側」、利確は「損切り幅 × 倍率」の値段を自動計算します。
       </div>
     </div>
   </div>
@@ -284,6 +341,26 @@
       if (val && !isFetching) checkAll();
     }
 
+    async function copyPrice(btn, priceStr) {
+      try {
+        await navigator.clipboard.writeText(priceStr);
+      } catch (e) {
+        const ta = document.createElement("textarea");
+        ta.value = priceStr;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      const orig = btn.textContent;
+      btn.textContent = "✅ コピー済";
+      btn.classList.add("copied");
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.classList.remove("copied");
+      }, 1600);
+    }
+
     function pineRsi(closes, length) {
       const n = closes.length;
       const rsi = new Array(n).fill(50);
@@ -326,10 +403,15 @@
       return out;
     }
 
-    function calcQQE(closes, fast = 2.618, slow = 4.236, rsiLen = 14, sf = 2) {
+    function analyzePair(pair, bars, fast = 2.618, slow = 4.236, rrRatio = 1.5) {
+      const closes = bars.map(b => b.close);
+      const highs = bars.map(b => b.high);
+      const lows = bars.map(b => b.low);
       const n = closes.length;
-      const rawRsi = pineRsi(closes, rsiLen);
-      const rsIndex = pineEma(rawRsi, sf);
+
+      // 1. QQE (14, 2)
+      const rawRsi = pineRsi(closes, 14);
+      const rsIndex = pineEma(rawRsi, 2);
       const tr = new Array(n).fill(0);
       for (let i = 1; i < n; i++) {
         const th = rsIndex[i - 1] > rsIndex[i] ? rsIndex[i - 1] : rsIndex[i];
@@ -364,20 +446,103 @@
         slowTL[i] = trend1[i] === 1 ? longband1[i] : shortband1[i];
       }
 
-      const last = n - 1, prev = n - 2;
-      const isBuyNow = fastTL[last] > slowTL[last];
-      const wasBuyPrev = fastTL[prev] > slowTL[prev];
+      const last = n - 1, prev = n - 2, prev2 = n - 3;
+      const qqeBuy = fastTL[last] > slowTL[last];
+
+      // 2. MACD (5, 20, 9) の短期線(ピンク線)角度判定
+      const ema5 = pineEma(closes, 5);
+      const ema20 = pineEma(closes, 20);
+      const macdLine = ema5.map((v, idx) => v - ema20[idx]);
+      const signalLine = pineEma(macdLine, 9);
+
+      const m0 = macdLine[last];
+      const m1 = macdLine[prev];
+      const m2 = macdLine[prev2];
+
+      const macdUp = m0 > m1; // 最新足でピンク線が上向き
+      const macdTurnedUp = m2 >= m1 && m1 < m0; // クイッと上向きに折り返した1本目
+      const macdTurnedDown = m2 <= m1 && m1 > m0; // クイッと下向きに折り返した1本目
+
+      // ステータス分類
+      // go_buy: QQE=BUY かつ MACD上向き
+      // go_sell: QQE=SELL かつ MACD下向き
+      // early_buy: MACDがクイッと上向き転換（初動）
+      // early_sell: MACDがクイッと下向き転換（初動）
+      // wait: 勢い一服・調整中
+      let statusType = "wait";
+      let targetSide = qqeBuy ? "BUY" : "SELL";
+
+      if (qqeBuy && macdUp) {
+        statusType = "go_buy";
+        targetSide = "BUY";
+      } else if (!qqeBuy && !macdUp) {
+        statusType = "go_sell";
+        targetSide = "SELL";
+      } else if (macdTurnedUp) {
+        statusType = "early_buy";
+        targetSide = "BUY";
+      } else if (macdTurnedDown) {
+        statusType = "early_sell";
+        targetSide = "SELL";
+      } else {
+        statusType = "wait";
+        targetSide = macdUp ? "BUY" : "SELL";
+      }
+
+      // 3. 損切り(SL)・利確(TP)の具体的な値段計算（直近6本の高値・安値ベース）
+      const isJpy = pair.endsWith("/JPY");
+      const decimals = isJpy ? 3 : 5;
+      const pipUnit = isJpy ? 0.01 : 0.0001;
+      const buffer = isJpy ? 0.05 : 0.0005; // 直近高値・安値の5pips外側
+      const minSlDist = isJpy ? 0.15 : 0.0015; // 最低15pips幅を確保
+      const maxSlDist = isJpy ? 0.80 : 0.0080; // 極端に広すぎる場合は80pipsに制限
+
+      const recentSlice = bars.slice(-6);
+      const recentLow = Math.min(...recentSlice.map(b => b.low));
+      const recentHigh = Math.max(...recentSlice.map(b => b.high));
+      const closeNow = closes[last];
+
+      let slPrice = 0;
+      let tpPrice = 0;
+      let slPips = 0;
+      let tpPips = 0;
+
+      if (targetSide === "BUY") {
+        let rawSl = recentLow - buffer;
+        let dist = closeNow - rawSl;
+        if (dist < minSlDist) dist = minSlDist;
+        if (dist > maxSlDist) dist = maxSlDist;
+        slPrice = closeNow - dist;
+        tpPrice = closeNow + dist * rrRatio;
+        slPips = Math.round(dist / pipUnit);
+        tpPips = Math.round((dist * rrRatio) / pipUnit);
+      } else {
+        let rawSl = recentHigh + buffer;
+        let dist = rawSl - closeNow;
+        if (dist < minSlDist) dist = minSlDist;
+        if (dist > maxSlDist) dist = maxSlDist;
+        slPrice = closeNow + dist;
+        tpPrice = closeNow - dist * rrRatio;
+        slPips = Math.round(dist / pipUnit);
+        tpPips = Math.round((dist * rrRatio) / pipUnit);
+      }
 
       return {
-        isBuy: isBuyNow,
-        flipped: isBuyNow !== wasBuyPrev,
-        close: closes[last],
-        greenFast: fastTL[last].toFixed(2),
-        redSlow: slowTL[last].toFixed(2)
+        close: closeNow.toFixed(decimals),
+        qqeBuy,
+        macdUp,
+        macdTurnedUp,
+        macdTurnedDown,
+        statusType,
+        targetSide,
+        slPrice: slPrice.toFixed(decimals),
+        tpPrice: tpPrice.toFixed(decimals),
+        slPips,
+        tpPips
       };
     }
 
-    async function fetch1HourCloses(pair) {
+    async function fetch1HourBars(pair) {
       const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(pair)}&interval=1h&outputsize=120&apikey=${encodeURIComponent(apiKey)}`;
       const res = await fetch(url, { cache: "no-store" });
       const data = await res.json();
@@ -388,7 +553,11 @@
       const lastBar = asc[asc.length - 1];
       return {
         lastTime: lastBar.datetime,
-        closes: asc.map(v => parseFloat(v.close))
+        bars: asc.map(v => ({
+          high: parseFloat(v.high),
+          low: parseFloat(v.low),
+          close: parseFloat(v.close)
+        }))
       };
     }
 
@@ -410,46 +579,46 @@
       }
 
       banner.className = "banner";
-      banner.textContent = "1時間足シグナル(8通貨)を取得中...";
+      banner.textContent = "1時間足 QQE ＋ MACD(5・20・9) を8通貨分計算中...";
       grid.innerHTML = "";
 
       const fast = Number(document.getElementById("fastParam").value) || 2.618;
       const slow = Number(document.getElementById("slowParam").value) || 4.236;
-      const rsiLen = Number(document.getElementById("rsiParam").value) || 14;
-      const sf = Number(document.getElementById("sfParam").value) || 2;
+      const rrRatio = Number(document.getElementById("rrRatio").value) || 1.5;
 
       const results = [];
       for (const item of PAIRS) {
         try {
-          const h1Data = await fetch1HourCloses(item.code);
-          const qqe = calcQQE(h1Data.closes, fast, slow, rsiLen, sf);
-          results.push({ ...item, lastTime: h1Data.lastTime, ...qqe });
+          const h1Data = await fetch1HourBars(item.code);
+          const analyzed = analyzePair(item.code, h1Data.bars, fast, slow, rrRatio);
+          results.push({ ...item, lastTime: h1Data.lastTime, ...analyzed });
         } catch (err) {
           results.push({ ...item, error: err.message || "取得エラー" });
         }
       }
 
-      results.sort((a, b) => {
-        if (a.error) return 1;
-        if (b.error) return -1;
-        return (b.flipped ? 10 : 0) - (a.flipped ? 10 : 0);
-      });
+      // 両方一致GO → 初動転換 → 待機中の順に自動並べ替え
+      const rank = r => {
+        if (r.error) return 0;
+        if (r.statusType === "go_buy" || r.statusType === "go_sell") return 30;
+        if (r.statusType === "early_buy" || r.statusType === "early_sell") return 20;
+        return 10;
+      };
+      results.sort((a, b) => rank(b) - rank(a));
 
       const valid = results.find(r => !r.error);
       const hasRateLimit = results.some(r => r.error && r.error.includes("API credits"));
       const timeLabel = valid ? `最新足: ${valid.lastTime}` : "";
-      const flippedList = results.filter(r => !r.error && r.flipped);
+      const goList = results.filter(r => !r.error && (r.statusType === "go_buy" || r.statusType === "go_sell"));
 
       if (hasRateLimit) {
         banner.className = "banner alert";
         banner.textContent = "⏳ 1分間のAPI回数上限に達しました。1分待ってから「更新」を押してください。";
-      } else if (flippedList.length > 0) {
+      } else if (goList.length > 0) {
         banner.className = "banner alert";
-        banner.innerHTML = `🔄 シグナル転換: ${flippedList.map(f => `${f.jp}(${f.isBuy ? "BUY" : "SELL"})`).join(" / ")}<br><span class="meta">${timeLabel}</span>`;
+        banner.innerHTML = `🔥 一致GO: ${goList.map(g => `${g.jp}(${g.targetSide})`).join(" / ")}<br><span class="meta">${timeLabel}</span>`;
       } else {
-        const buyCount = results.filter(r => !r.error && r.isBuy).length;
-        const sellCount = results.filter(r => !r.error && !r.isBuy).length;
-        banner.innerHTML = `<span style="color:#34d399;">▲ BUY: ${buyCount}通貨</span> ／ <span style="color:#f87171;">▼ SELL: ${sellCount}通貨</span><br><span class="meta">${timeLabel}</span>`;
+        banner.innerHTML = `⏳ 現在QQEとMACDが完全一致のGOなし（初動・待機を確認）<br><span class="meta">${timeLabel}</span>`;
       }
 
       for (const r of results) {
@@ -462,21 +631,57 @@
             <div class="meta">${shortErr}</div>
           `;
         } else {
-          card.className = `card ${r.isBuy ? "buy-card" : "sell-card"}${r.flipped ? " flipped" : ""}`;
+          let cardClass = "card";
+          let pillClass = "status-pill pill-wait";
+          let pillText = "⚠️ 勢い一服（利確・様子見）";
+
+          if (r.statusType === "go_buy") {
+            cardClass += " go-buy";
+            pillClass = "status-pill pill-go-buy";
+            pillText = "🔥 BUY（買いGO）";
+          } else if (r.statusType === "go_sell") {
+            cardClass += " go-sell";
+            pillClass = "status-pill pill-go-sell";
+            pillText = "🔥 SELL（売りGO）";
+          } else if (r.statusType === "early_buy") {
+            cardClass += " early";
+            pillClass = "status-pill pill-early";
+            pillText = "⚡ 初動買い（MACD上転）";
+          } else if (r.statusType === "early_sell") {
+            cardClass += " early";
+            pillClass = "status-pill pill-early";
+            pillText = "⚡ 初動売り（MACD下転）";
+          }
+
+          card.className = cardClass;
           card.innerHTML = `
             <div>
               <div class="pair-title">
                 <span class="pair-en">${r.code}</span>
                 <span class="pair-jp">${r.jp}</span>
               </div>
-              ${r.flipped ? '<div class="flip-tag">🔄 転換（ドテン）</div>' : ""}
-              <div class="signal-box ${r.isBuy ? "signal-buy" : "signal-sell"}">
-                ${r.isBuy ? "▲ BUY（買い）" : "▼ SELL（売り）"}
+              <div class="${pillClass}">${pillText}</div>
+              <div class="ind-box">
+                現在値: <strong>${r.close}</strong><br>
+                QQE: <span class="${r.qqeBuy ? "up-txt" : "down-txt"}">${r.qqeBuy ? "▲BUY" : "▼SELL"}</span> ／
+                MACD: <span class="${r.macdUp ? "up-txt" : "down-txt"}">${r.macdUp ? "↗上向き" : "↘下向き"}</span>
               </div>
             </div>
-            <div class="rates-box">
-              終値: <strong>${r.close}</strong><br>
-              🟢${r.greenFast} / 🔴${r.redSlow}
+            <div class="price-targets">
+              <div class="target-row">
+                <div class="target-info">
+                  <span class="target-label tp-label">🎯 利確目安 (+${r.tpPips}p)</span>
+                  <span class="target-val">${r.tpPrice}</span>
+                </div>
+                <button class="copy-btn" onclick="copyPrice(this, '${r.tpPrice}')">コピー</button>
+              </div>
+              <div class="target-row">
+                <div class="target-info">
+                  <span class="target-label sl-label">🛑 損切り目安 (-${r.slPips}p)</span>
+                  <span class="target-val">${r.slPrice}</span>
+                </div>
+                <button class="copy-btn" onclick="copyPrice(this, '${r.slPrice}')">コピー</button>
+              </div>
             </div>
           `;
         }
