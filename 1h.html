@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>1時間足 QQE + 上位足&1H 200EMA監視 (7通貨)</title>
+  <title>1時間足 QQE シグナル (8通貨)</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -16,35 +16,33 @@
       --sell: #ef4444;
       --accent: #38bdf8;
       --warn: #facc15;
-      --hot: #f97316;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      padding: 10px;
+      padding: 12px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
     }
-    .container { max-width: 980px; margin: 0 auto; }
+    .container { max-width: 900px; margin: 0 auto; }
     header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 6px;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       flex-wrap: wrap;
     }
-    h1 { font-size: 0.98rem; margin: 0; }
-    h2 { font-size: 0.95rem; margin: 20px 0 8px; border-left: 4px solid var(--accent); padding-left: 8px; }
-    .header-btns { display: flex; gap: 5px; align-items: center; }
+    h1 { font-size: 1.02rem; margin: 0; }
+    .header-btns { display: flex; gap: 6px; align-items: center; }
     .nav-link {
       background: #334155;
       color: #e2e8f0;
       text-decoration: none;
-      padding: 6px 8px;
+      padding: 6px 9px;
       border-radius: 7px;
-      font-size: 0.74rem;
+      font-size: 0.75rem;
       font-weight: 600;
     }
     .api-bar {
@@ -55,7 +53,7 @@
       border: 1px solid var(--border);
       padding: 7px 9px;
       border-radius: 8px;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       flex-wrap: wrap;
     }
     .api-bar input {
@@ -68,202 +66,120 @@
       padding: 5px 8px;
       font-size: 0.78rem;
     }
-    .controls {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      margin-bottom: 8px;
-      align-items: center;
-    }
-    select, button {
+    button {
       background: var(--card);
       color: var(--text);
       border: 1px solid var(--border);
       border-radius: 7px;
-      padding: 6px 8px;
+      padding: 6px 10px;
       font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
     }
-    button { cursor: pointer; font-weight: 600; }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
-    button.primary { background: var(--accent); color: #0f172a; border: none; padding: 6px 12px; }
-    button.reset-btn {
-      background: rgba(239, 68, 68, 0.16);
-      border: 1px solid rgba(239, 68, 68, 0.45);
-      color: #fca5a5;
-      font-size: 0.72rem;
-      padding: 6px 8px;
-    }
-    button.buy-btn {
-      background: rgba(16, 185, 129, 0.22);
-      border-color: var(--buy);
-      color: #34d399;
-      width: 100%;
-      margin-top: 5px;
-      padding: 7px 4px;
-      font-size: 0.78rem;
-    }
-    button.sell-btn {
-      background: rgba(239, 68, 68, 0.22);
-      border-color: var(--sell);
-      color: #f87171;
-      width: 100%;
-      margin-top: 5px;
-      padding: 7px 4px;
-      font-size: 0.78rem;
-    }
-    button.close-buy-btn {
-      background: #10b981;
-      color: #0f172a;
-      border: none;
-      width: 100%;
-      margin-top: 6px;
-      padding: 6px 4px;
-      font-size: 0.75rem;
-      font-weight: 800;
-    }
-    button.close-sell-btn {
-      background: #ef4444;
-      color: #ffffff;
-      border: none;
-      width: 100%;
-      margin-top: 6px;
-      padding: 6px 4px;
-      font-size: 0.75rem;
-      font-weight: 800;
-    }
+    button.primary { background: var(--accent); color: #0f172a; border: none; padding: 6px 14px; }
     button:active { opacity: 0.85; }
 
     .banner {
-      padding: 9px 10px;
+      padding: 10px;
       border-radius: 8px;
-      margin-bottom: 10px;
-      font-weight: bold;
+      margin-bottom: 12px;
+      font-weight: 700;
       text-align: center;
       background: var(--card);
       border: 1px solid var(--border);
-      font-size: 0.8rem;
+      font-size: 0.84rem;
       line-height: 1.45;
     }
     .banner.alert {
-      background: rgba(249, 115, 22, 0.18);
-      border-color: var(--hot);
-      color: #fed7aa;
+      background: rgba(250, 204, 21, 0.16);
+      border-color: var(--warn);
+      color: #fef08a;
     }
+    .meta { font-size: 0.7rem; color: var(--muted); font-weight: 400; }
 
+    /* スマホ横2列×4段・PC横4列×2段 */
     .grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
+      gap: 9px;
     }
-    @media (min-width: 720px) {
-      .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-    }
-    @media (min-width: 940px) {
-      .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    @media (min-width: 700px) {
+      .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 11px; }
     }
 
     .card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 9px;
+      padding: 10px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       min-width: 0;
     }
-    .card.go {
-      border: 2px solid var(--hot);
-      box-shadow: 0 0 14px rgba(249, 115, 22, 0.35);
+    .card.buy-card {
+      border-color: rgba(16, 185, 129, 0.45);
+      background: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, var(--card) 100%);
+    }
+    .card.sell-card {
+      border-color: rgba(239, 68, 68, 0.45);
+      background: linear-gradient(180deg, rgba(239, 68, 68, 0.08) 0%, var(--card) 100%);
     }
     .card.flipped {
       border: 2px solid var(--warn);
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.25);
     }
 
-    .pair-title { display: flex; flex-direction: column; line-height: 1.2; margin-bottom: 4px; }
-    .pair-en { font-size: 0.92rem; font-weight: 800; }
-    .pair-jp { font-size: 0.72rem; color: #cbd5e1; font-weight: 600; }
+    .pair-title {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+      margin-bottom: 6px;
+    }
+    .pair-en { font-size: 0.96rem; font-weight: 800; }
+    .pair-jp { font-size: 0.74rem; color: #cbd5e1; font-weight: 600; margin-top: 1px; }
 
-    .tags-row { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 5px; }
-    .badge {
-      display: inline-block;
-      padding: 2px 6px;
-      border-radius: 999px;
-      font-size: 0.7rem;
-      font-weight: 700;
-    }
-    .badge.buy { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-    .badge.sell { background: rgba(239, 68, 68, 0.2); color: #f87171; }
-    .go-tag {
-      display: inline-block;
-      background: var(--hot);
-      color: #fff;
-      font-size: 0.66rem;
-      font-weight: 800;
-      padding: 2px 5px;
-      border-radius: 4px;
-    }
     .flip-tag {
       display: inline-block;
       background: var(--warn);
       color: #0f172a;
-      font-size: 0.65rem;
+      font-size: 0.68rem;
       font-weight: 800;
-      padding: 2px 5px;
+      padding: 2px 6px;
       border-radius: 4px;
+      margin-bottom: 6px;
+      width: fit-content;
     }
 
-    .cond-box {
+    .signal-box {
+      text-align: center;
+      padding: 9px 6px;
+      border-radius: 7px;
+      font-size: 0.94rem;
+      font-weight: 900;
+      margin-bottom: 7px;
+      letter-spacing: 0.02em;
+    }
+    .signal-buy {
+      background: rgba(16, 185, 129, 0.22);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.5);
+    }
+    .signal-sell {
+      background: rgba(239, 68, 68, 0.22);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.5);
+    }
+
+    .rates-box {
       background: var(--card-sub);
       border-radius: 6px;
-      padding: 5px 6px;
-      font-size: 0.69rem;
-      margin-bottom: 5px;
+      padding: 5px 7px;
+      font-size: 0.72rem;
       line-height: 1.45;
+      color: #cbd5e1;
     }
-    .ok { color: #34d399; font-weight: 700; }
-    .ng { color: #94a3b8; }
-
-    .pos-box {
-      background: rgba(56, 189, 248, 0.1);
-      border: 1px solid rgba(56, 189, 248, 0.35);
-      border-radius: 6px;
-      padding: 6px;
-      margin-top: 5px;
-      font-size: 0.71rem;
-      line-height: 1.4;
-    }
-    .plus { color: #34d399; font-weight: 700; }
-    .minus { color: #f87171; font-weight: 700; }
-    .meta { font-size: 0.68rem; color: var(--muted); }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
-      margin-bottom: 10px;
-    }
-    @media (max-width: 520px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
-    .stat-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px;
-      text-align: center;
-    }
-    .stat-label { font-size: 0.7rem; color: var(--muted); }
-    .stat-val { font-size: 1rem; font-weight: 800; margin-top: 2px; }
-
-    .history-wrap {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      overflow-x: auto;
-    }
-    table { width: 100%; border-collapse: collapse; font-size: 0.76rem; min-width: 500px; }
-    th, td { padding: 7px 8px; border-bottom: 1px solid var(--border); text-align: left; }
-    th { color: var(--muted); font-weight: 600; background: rgba(15, 23, 42, 0.5); }
-    .del-btn { background: transparent; border: none; color: var(--muted); padding: 2px 5px; }
 
     .settings {
       margin-top: 16px;
@@ -288,56 +204,23 @@
 <body>
   <div class="container">
     <header>
-      <h1>⏱ 1時間足 QQE + 200EMA (7通貨)</h1>
+      <h1>⏱ 1時間足 QQE シグナル (8通貨)</h1>
       <div class="header-btns">
         <a href="./index.html" class="nav-link">📊 日足へ</a>
-        <button class="reset-btn" onclick="resetAllRecords()">全記録消去</button>
-        <button id="updateBtn" class="primary" onclick="checkAll(true)">更新</button>
+        <button id="updateBtn" class="primary" onclick="checkAll()">更新</button>
       </div>
     </header>
 
     <div class="api-bar">
-      <span class="meta">Twelve Data APIキー:</span>
-      <input id="apiKeyInput" type="password" placeholder="APIキーを貼り付けて保存" />
+      <span class="meta">APIキー:</span>
+      <input id="apiKeyInput" type="password" placeholder="Twelve Data APIキーを貼り付けて保存" />
       <button onclick="saveApiKey()">保存</button>
       <span id="apiStatus" class="meta"></span>
     </div>
 
     <div id="statusBanner" class="banner">APIキーを保存して「更新」を押してください</div>
 
-    <div class="controls">
-      <span class="meta">🔥GO条件: ①日足200EMA ＆ ②1H200EMA ＆ ③1H QQE一致</span>
-      <span class="meta" style="margin-left: auto;">ロット:</span>
-      <select id="lotSelect" onchange="saveLot()">
-        <option value="1000" selected>1,000通貨</option>
-        <option value="2000">2,000通貨</option>
-        <option value="3000">3,000通貨</option>
-        <option value="5000">5,000通貨</option>
-        <option value="10000">10,000通貨</option>
-      </select>
-    </div>
-
     <div id="cards" class="grid"></div>
-
-    <h2>🏆 1時間足 トレード成績 & 履歴</h2>
-    <div id="statsGrid" class="stats-grid"></div>
-
-    <div class="history-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>通貨</th>
-            <th>取引内容</th>
-            <th>開始価格</th>
-            <th>終了価格</th>
-            <th>獲得pips</th>
-            <th>損益(目安)</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="historyBody"></tbody>
-      </table>
-    </div>
 
     <div class="settings">
       <strong>Glaz QQE 設定:</strong>
@@ -345,9 +228,9 @@
       Slow <input id="slowParam" type="number" step="0.0001" value="4.2360" />
       RSI <input id="rsiParam" type="number" value="14" />
       SF <input id="sfParam" type="number" value="2" />
-      <button onclick="checkAll(true)">再計算</button>
+      <button onclick="checkAll()">再計算</button>
       <div style="margin-top: 5px;">
-        ※Twelve Data無料枠は1分間に8回までのため、1回更新すると60秒間ボタンがロックされます。
+        ※8通貨＝1回の更新で8クレジット消費（無料枠の1分上限ちょうど）のため、更新後62秒間ロックされます。
       </div>
     </div>
   </div>
@@ -360,27 +243,16 @@
       { code: "EUR/JPY", jp: "ユーロ/円" },
       { code: "GBP/JPY", jp: "ポンド/円" },
       { code: "AUD/USD", jp: "豪ドル/ドル" },
-      { code: "AUD/JPY", jp: "豪ドル/円" }
+      { code: "AUD/JPY", jp: "豪ドル/円" },
+      { code: "GBP/AUD", jp: "ポンド/豪ドル" }
     ];
 
-    function getPairJpName(pair) {
-      const found = PAIRS.find(p => p.code === pair);
-      return found ? found.jp : pair;
-    }
-
     let apiKey = localStorage.getItem("twelvedata_api_key") || "";
-    let positions = JSON.parse(localStorage.getItem("qqe_1h_positions")) || {};
-    let history = JSON.parse(localStorage.getItem("qqe_1h_history")) || [];
-    let defaultLot = Number(localStorage.getItem("qqe_lot")) || 1000;
-    document.getElementById("lotSelect").value = String(defaultLot);
-
     if (apiKey) {
       document.getElementById("apiKeyInput").value = apiKey;
       document.getElementById("apiStatus").textContent = "✅ 保存済";
     }
 
-    let latestRates = {};
-    let lastResultsCache = [];
     let isFetching = false;
     let cooldownTimer = null;
 
@@ -409,141 +281,7 @@
       apiKey = val;
       localStorage.setItem("twelvedata_api_key", val);
       document.getElementById("apiStatus").textContent = val ? "✅ 保存済" : "未設定";
-      if (val && !isFetching) checkAll(true);
-    }
-
-    function resetAllRecords() {
-      if (!confirm("1時間足トレード記録と保有ポジションをすべて消去しますか？")) return;
-      positions = {};
-      history = [];
-      localStorage.removeItem("qqe_1h_positions");
-      localStorage.removeItem("qqe_1h_history");
-      renderHistory();
-      if (lastResultsCache.length > 0) renderCards(lastResultsCache);
-      alert("すべての記録を消去しました！");
-    }
-
-    function saveLot() {
-      defaultLot = Number(document.getElementById("lotSelect").value) || 1000;
-      localStorage.setItem("qqe_lot", String(defaultLot));
-    }
-
-    function saveTradeData() {
-      localStorage.setItem("qqe_1h_positions", JSON.stringify(positions));
-      localStorage.setItem("qqe_1h_history", JSON.stringify(history));
-    }
-
-    function getNowStr() {
-      const now = new Date();
-      const m = String(now.getMonth() + 1).padStart(2, "0");
-      const d = String(now.getDate()).padStart(2, "0");
-      const h = String(now.getHours()).padStart(2, "0");
-      const min = String(now.getMinutes()).padStart(2, "0");
-      return `${m}/${d} ${h}:${min}`;
-    }
-
-    function calcPnL(pair, side, entryPrice, exitPrice, lot) {
-      const isJpyQuote = pair.endsWith("/JPY");
-      const pipUnit = isJpyQuote ? 0.01 : 0.0001;
-      const diff = side === "BUY" ? (exitPrice - entryPrice) : (entryPrice - exitPrice);
-      const pips = diff / pipUnit;
-
-      let jpyRate = 1;
-      if (!isJpyQuote) {
-        const quote = pair.split("/")[1];
-        const quoteJpyPair = `${quote}/JPY`;
-        if (latestRates[quoteJpyPair]) jpyRate = latestRates[quoteJpyPair];
-        else if (quote === "USD") jpyRate = 153;
-        else if (quote === "AUD") jpyRate = 100;
-      }
-      const profitJpy = Math.round(diff * lot * jpyRate);
-      return { pips: Number(pips.toFixed(1)), profitJpy };
-    }
-
-    // 新規エントリー（BUY または SELL）
-    function openPosition(pair, side) {
-      const jp = getPairJpName(pair);
-      const suggested = latestRates[pair] || "";
-      const actionText = side === "BUY" ? "買う（BUY）" : "売る（SELL）";
-      const input = prompt(`${pair}（${jp}）を ${actionText} 価格を入力してください:`, suggested);
-      if (input === null) return;
-      const price = parseFloat(input);
-      if (isNaN(price) || price <= 0) return alert("正しい価格を入力してください");
-      positions[pair] = { side, entryPrice: price, entryDate: getNowStr(), lot: defaultLot };
-      saveTradeData();
-      if (lastResultsCache.length > 0) renderCards(lastResultsCache);
-    }
-
-    // 決済して取引終了（買ったものは売る、売ったものは買う）
-    function closePosition(pair) {
-      const pos = positions[pair];
-      if (!pos) return;
-      const jp = getPairJpName(pair);
-      const suggested = latestRates[pair] || pos.entryPrice;
-      const closeActionText = pos.side === "BUY" ? "売って決済（取引終了）" : "買って決済（取引終了）";
-      const input = prompt(`${pair}（${jp}）を ${closeActionText} する価格を入力してください:`, suggested);
-      if (input === null) return;
-      const exitPrice = parseFloat(input);
-      if (isNaN(exitPrice) || exitPrice <= 0) return alert("正しい価格を入力してください");
-      const { pips, profitJpy } = calcPnL(pair, pos.side, pos.entryPrice, exitPrice, pos.lot);
-      history.unshift({
-        id: Date.now(), pair, side: pos.side, entryPrice: pos.entryPrice, entryDate: pos.entryDate,
-        exitPrice, exitDate: getNowStr(), pips, profitJpy, lot: pos.lot
-      });
-      delete positions[pair];
-      saveTradeData();
-      renderHistory();
-      if (lastResultsCache.length > 0) renderCards(lastResultsCache);
-    }
-
-    function deleteHistory(id) {
-      if (!confirm("このトレード履歴を1件削除しますか？")) return;
-      history = history.filter(h => h.id !== id);
-      saveTradeData();
-      renderHistory();
-    }
-
-    function renderHistory() {
-      const statsGrid = document.getElementById("statsGrid");
-      const tbody = document.getElementById("historyBody");
-
-      const totalTrades = history.length;
-      const wins = history.filter(h => h.pips > 0).length;
-      const winRate = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) : "0.0";
-      const totalPips = history.reduce((acc, h) => acc + h.pips, 0).toFixed(1);
-      const totalProfit = history.reduce((acc, h) => acc + h.profitJpy, 0);
-
-      const pipsClass = Number(totalPips) >= 0 ? "plus" : "minus";
-      const profitClass = totalProfit >= 0 ? "plus" : "minus";
-
-      statsGrid.innerHTML = `
-        <div class="stat-card"><div class="stat-label">取引回数</div><div class="stat-val">${totalTrades}回</div></div>
-        <div class="stat-card"><div class="stat-label">勝率</div><div class="stat-val">${winRate}%</div></div>
-        <div class="stat-card"><div class="stat-label">累計pips</div><div class="stat-val ${pipsClass}">${Number(totalPips) >= 0 ? "+" : ""}${totalPips}</div></div>
-        <div class="stat-card"><div class="stat-label">累計損益(目安)</div><div class="stat-val ${profitClass}">${totalProfit >= 0 ? "+" : ""}${totalProfit.toLocaleString()}円</div></div>
-      `;
-
-      if (history.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--muted); padding: 14px;">まだ終了した取引記録はありません。</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = history.map(h => {
-        const isWin = h.pips >= 0;
-        const jp = getPairJpName(h.pair);
-        const flowText = h.side === "BUY" ? "買い → 売り" : "売り → 買い";
-        return `
-          <tr>
-            <td><strong>${h.pair}</strong> <span class="meta">${jp}</span><br><span class="meta">${h.lot.toLocaleString()}通貨</span></td>
-            <td><span class="badge ${h.side === "BUY" ? "buy" : "sell"}">${flowText}</span></td>
-            <td>${h.entryDate}<br><strong>${h.entryPrice}</strong></td>
-            <td>${h.exitDate}<br><strong>${h.exitPrice}</strong></td>
-            <td class="${isWin ? "plus" : "minus"}">${isWin ? "+" : ""}${h.pips} pips</td>
-            <td class="${isWin ? "plus" : "minus"}">${isWin ? "+" : ""}${h.profitJpy.toLocaleString()}円</td>
-            <td><button class="del-btn" onclick="deleteHistory(${h.id})">✕</button></td>
-          </tr>
-        `;
-      }).join("");
+      if (val && !isFetching) checkAll();
     }
 
     function pineRsi(closes, length) {
@@ -588,7 +326,7 @@
       return out;
     }
 
-    function calcQQEAndEma(closes, fast = 2.618, slow = 4.236, rsiLen = 14, sf = 2) {
+    function calcQQE(closes, fast = 2.618, slow = 4.236, rsiLen = 14, sf = 2) {
       const n = closes.length;
       const rawRsi = pineRsi(closes, rsiLen);
       const rsIndex = pineEma(rawRsi, sf);
@@ -626,53 +364,21 @@
         slowTL[i] = trend1[i] === 1 ? longband1[i] : shortband1[i];
       }
 
-      const ema200Arr = pineEma(closes, 200);
       const last = n - 1, prev = n - 2;
-      const closeNow = closes[last];
-      const emaNow = ema200Arr[last];
-      const emaPrev = ema200Arr[prev];
-
       const isBuyNow = fastTL[last] > slowTL[last];
       const wasBuyPrev = fastTL[prev] > slowTL[prev];
-      const aboveEma = closeNow > emaNow;
-      const emaRising = emaNow >= emaPrev;
-      const decimals = closeNow > 20 ? 2 : 4;
-
-      let h1Dir = "mix";
-      if (aboveEma && emaRising) h1Dir = "up";
-      else if (!aboveEma && !emaRising) h1Dir = "down";
 
       return {
         isBuy: isBuyNow,
         flipped: isBuyNow !== wasBuyPrev,
-        close: closeNow,
-        ema200: emaNow.toFixed(decimals),
-        h1Dir,
-        emaRising
+        close: closes[last],
+        greenFast: fastTL[last].toFixed(2),
+        redSlow: slowTL[last].toFixed(2)
       };
     }
 
-    async function fetchDailyDir(base, quote) {
-      const end = new Date(Date.now() + 9 * 60 * 60 * 1000 + 24 * 60 * 60 * 1000);
-      const start = new Date(end.getTime() - 335 * 24 * 60 * 60 * 1000);
-      const fmt = d => d.toISOString().split("T")[0];
-      const url = `https://api.frankfurter.dev/v1/${fmt(start)}..${fmt(end)}?base=${base}&symbols=${quote}&_=${Date.now()}`;
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) return "mix";
-      const data = await res.json();
-      const dates = Object.keys(data.rates).sort();
-      const closes = dates.map(d => data.rates[d][quote]);
-      const ema200 = pineEma(closes, 200);
-      const last = closes.length - 1, prev = closes.length - 2;
-      const above = closes[last] > ema200[last];
-      const rising = ema200[last] >= ema200[prev];
-      if (above && rising) return "up";
-      if (!above && !rising) return "down";
-      return "mix";
-    }
-
     async function fetch1HourCloses(pair) {
-      const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(pair)}&interval=1h&outputsize=260&apikey=${encodeURIComponent(apiKey)}`;
+      const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(pair)}&interval=1h&outputsize=120&apikey=${encodeURIComponent(apiKey)}`;
       const res = await fetch(url, { cache: "no-store" });
       const data = await res.json();
       if (data.status === "error" || !data.values) {
@@ -686,103 +392,9 @@
       };
     }
 
-    function renderCards(results) {
+    async function checkAll() {
       const banner = document.getElementById("statusBanner");
       const grid = document.getElementById("cards");
-      grid.innerHTML = "";
-
-      const valid = results.find(r => !r.error);
-      const hasRateLimit = results.some(r => r.error && r.error.includes("API credits"));
-      const timeLabel = valid ? `最新足: ${valid.lastTime}` : "";
-      const goList = results.filter(r => !r.error && r.isGo);
-
-      if (hasRateLimit) {
-        banner.className = "banner alert";
-        banner.innerHTML = `⏳ 1分間のAPI回数上限に達しました。1分待ってから「更新」を押してください。`;
-      } else if (goList.length > 0) {
-        banner.className = "banner alert";
-        banner.innerHTML = `🔥 3条件GOサイン: ${goList.map(g => `${g.code}(${g.jp})`).join(" / ")}<br><span class="meta">${timeLabel}</span>`;
-      } else {
-        banner.className = "banner";
-        banner.innerHTML = `⏳ 現在3条件すべて一致のGO通貨なし<br><span class="meta">${timeLabel}</span>`;
-      }
-
-      const dirLabel = d => d === "up" ? "📈上" : (d === "down" ? "📉下" : "⚠️迷い");
-
-      for (const r of results) {
-        const card = document.createElement("div");
-        const pos = positions[r.code];
-        const currentSignalSide = r.isBuy ? "BUY" : "SELL";
-
-        let cardClass = "card";
-        if (r.isGo) cardClass += " go";
-        else if (r.flipped) cardClass += " flipped";
-        card.className = cardClass;
-
-        if (r.error) {
-          const shortErr = r.error.includes("API credits") ? "1分間の制限待機中（1分後に再更新）" : r.error;
-          card.innerHTML = `
-            <div class="pair-title"><span class="pair-en">${r.code}</span><span class="pair-jp">${r.jp}</span></div>
-            <div class="meta">${shortErr}</div>
-          `;
-        } else {
-          let positionHtml = "";
-          if (pos) {
-            const pnl = calcPnL(r.code, pos.side, pos.entryPrice, r.close, pos.lot);
-            const isPlus = pnl.pips >= 0;
-            const statusLabel = pos.side === "BUY" ? "🟢 買い保有中" : "🔴 売り保有中";
-            const closeBtnClass = pos.side === "BUY" ? "close-sell-btn" : "close-buy-btn";
-            const closeBtnText = pos.side === "BUY" ? "💰 売って決済（終了）" : "💰 買って決済（終了）";
-
-            positionHtml = `
-              <div class="pos-box">
-                <div><strong>${statusLabel}</strong></div>
-                <div class="meta">開始: ${pos.entryPrice} (${pos.lot.toLocaleString()})</div>
-                <div>損益: <span class="${isPlus ? "plus" : "minus"}">${isPlus ? "+" : ""}${pnl.pips}p (${isPlus ? "+" : ""}${pnl.profitJpy.toLocaleString()}円)</span></div>
-                <button class="${closeBtnClass}" onclick="closePosition('${r.code}')">${closeBtnText}</button>
-              </div>
-            `;
-          } else {
-            const openBtnClass = r.isBuy ? "buy-btn" : "sell-btn";
-            const openBtnText = r.isBuy ? "📥 買う（BUY 記録）" : "📥 売る（SELL 記録）";
-
-            positionHtml = `
-              <div>
-                <button class="${openBtnClass}" onclick="openPosition('${r.code}', '${currentSignalSide}')">
-                  ${openBtnText}
-                </button>
-              </div>
-            `;
-          }
-
-          card.innerHTML = `
-            <div>
-              <div class="pair-title">
-                <span class="pair-en">${r.code}</span>
-                <span class="pair-jp">${r.jp}</span>
-              </div>
-              <div class="tags-row">
-                <span class="badge ${r.isBuy ? "buy" : "sell"}">${r.isBuy ? "▲ BUY" : "▼ SELL"}</span>
-                ${r.isGo ? '<span class="go-tag">🔥GO!</span>' : ""}
-                ${r.flipped ? '<span class="flip-tag">転換</span>' : ""}
-              </div>
-              <div class="cond-box">
-                日足200: <span class="${r.dailyDir !== "mix" ? "ok" : "ng"}">${dirLabel(r.dailyDir)}</span> ／
-                1H200: <span class="${r.h1Dir !== "mix" ? "ok" : "ng"}">${dirLabel(r.h1Dir)}</span><br>
-                終値: <strong>${r.close}</strong><br>
-                1H 200EMA: <strong>${r.ema200}</strong>
-              </div>
-            </div>
-            ${positionHtml}
-          `;
-        }
-        grid.appendChild(card);
-      }
-    }
-
-    async function checkAll(isManual = false) {
-      renderHistory();
-      const banner = document.getElementById("statusBanner");
       const btn = document.getElementById("updateBtn");
 
       if (!apiKey) {
@@ -798,7 +410,8 @@
       }
 
       banner.className = "banner";
-      banner.textContent = "日足200EMA ＋ 1時間足データ(7通貨)を取得中...";
+      banner.textContent = "1時間足シグナル(8通貨)を取得中...";
+      grid.innerHTML = "";
 
       const fast = Number(document.getElementById("fastParam").value) || 2.618;
       const slow = Number(document.getElementById("slowParam").value) || 4.236;
@@ -807,20 +420,10 @@
 
       const results = [];
       for (const item of PAIRS) {
-        const [base, quote] = item.code.split("/");
         try {
-          const [dailyDir, h1Data] = await Promise.all([
-            fetchDailyDir(base, quote),
-            fetch1HourCloses(item.code)
-          ]);
-          const qqe = calcQQEAndEma(h1Data.closes, fast, slow, rsiLen, sf);
-          latestRates[item.code] = qqe.close;
-
-          const isGoBuy = dailyDir === "up" && qqe.h1Dir === "up" && qqe.isBuy;
-          const isGoSell = dailyDir === "down" && qqe.h1Dir === "down" && !qqe.isBuy;
-          const isGo = isGoBuy || isGoSell;
-
-          results.push({ ...item, dailyDir, lastTime: h1Data.lastTime, isGo, ...qqe });
+          const h1Data = await fetch1HourCloses(item.code);
+          const qqe = calcQQE(h1Data.closes, fast, slow, rsiLen, sf);
+          results.push({ ...item, lastTime: h1Data.lastTime, ...qqe });
         } catch (err) {
           results.push({ ...item, error: err.message || "取得エラー" });
         }
@@ -829,21 +432,63 @@
       results.sort((a, b) => {
         if (a.error) return 1;
         if (b.error) return -1;
-        const aScore = (a.isGo ? 50 : 0) + (a.flipped ? 20 : 0);
-        const bScore = (b.isGo ? 50 : 0) + (b.flipped ? 20 : 0);
-        return bScore - aScore;
+        return (b.flipped ? 10 : 0) - (a.flipped ? 10 : 0);
       });
 
-      lastResultsCache = results;
-      renderCards(results);
+      const valid = results.find(r => !r.error);
+      const hasRateLimit = results.some(r => r.error && r.error.includes("API credits"));
+      const timeLabel = valid ? `最新足: ${valid.lastTime}` : "";
+      const flippedList = results.filter(r => !r.error && r.flipped);
+
+      if (hasRateLimit) {
+        banner.className = "banner alert";
+        banner.textContent = "⏳ 1分間のAPI回数上限に達しました。1分待ってから「更新」を押してください。";
+      } else if (flippedList.length > 0) {
+        banner.className = "banner alert";
+        banner.innerHTML = `🔄 シグナル転換: ${flippedList.map(f => `${f.jp}(${f.isBuy ? "BUY" : "SELL"})`).join(" / ")}<br><span class="meta">${timeLabel}</span>`;
+      } else {
+        const buyCount = results.filter(r => !r.error && r.isBuy).length;
+        const sellCount = results.filter(r => !r.error && !r.isBuy).length;
+        banner.innerHTML = `<span style="color:#34d399;">▲ BUY: ${buyCount}通貨</span> ／ <span style="color:#f87171;">▼ SELL: ${sellCount}通貨</span><br><span class="meta">${timeLabel}</span>`;
+      }
+
+      for (const r of results) {
+        const card = document.createElement("div");
+        if (r.error) {
+          const shortErr = r.error.includes("API credits") ? "1分間の制限待機中（1分後に再更新）" : r.error;
+          card.className = "card";
+          card.innerHTML = `
+            <div class="pair-title"><span class="pair-en">${r.code}</span><span class="pair-jp">${r.jp}</span></div>
+            <div class="meta">${shortErr}</div>
+          `;
+        } else {
+          card.className = `card ${r.isBuy ? "buy-card" : "sell-card"}${r.flipped ? " flipped" : ""}`;
+          card.innerHTML = `
+            <div>
+              <div class="pair-title">
+                <span class="pair-en">${r.code}</span>
+                <span class="pair-jp">${r.jp}</span>
+              </div>
+              ${r.flipped ? '<div class="flip-tag">🔄 転換（ドテン）</div>' : ""}
+              <div class="signal-box ${r.isBuy ? "signal-buy" : "signal-sell"}">
+                ${r.isBuy ? "▲ BUY（買い）" : "▼ SELL（売り）"}
+              </div>
+            </div>
+            <div class="rates-box">
+              終値: <strong>${r.close}</strong><br>
+              🟢${r.greenFast} / 🔴${r.redSlow}
+            </div>
+          `;
+        }
+        grid.appendChild(card);
+      }
+
       isFetching = false;
       startCooldown(62);
     }
 
     if (apiKey) {
-      checkAll(false);
-    } else {
-      renderHistory();
+      checkAll();
     }
   </script>
 </body>
