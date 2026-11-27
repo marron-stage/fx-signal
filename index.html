@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>日足 200EMA 環境認識 (厳選7通貨)</title>
+  <title>日足 200EMA + OCO利確・損切り目安 (8通貨)</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -20,21 +20,21 @@
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      padding: 12px;
+      padding: 10px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
     }
-    .container { max-width: 900px; margin: 0 auto; }
+    .container { max-width: 960px; margin: 0 auto; }
     header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 6px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       flex-wrap: wrap;
     }
-    h1 { font-size: 1.02rem; margin: 0; }
+    h1 { font-size: 0.98rem; margin: 0; }
     .header-btns { display: flex; gap: 6px; align-items: center; }
     button, .nav-link {
       background: var(--card);
@@ -42,26 +42,19 @@
       border: 1px solid var(--border);
       border-radius: 7px;
       padding: 6px 10px;
-      font-size: 0.76rem;
+      font-size: 0.75rem;
       font-weight: 600;
       text-decoration: none;
       cursor: pointer;
     }
-    button.primary { background: var(--accent); color: #0f172a; border: none; }
+    button.primary { background: var(--accent); color: #0f172a; border: none; padding: 6px 13px; }
     .nav-link { background: #334155; color: #e2e8f0; border: none; }
-    button.clear-btn {
-      background: rgba(239, 68, 68, 0.14);
-      border: 1px solid rgba(239, 68, 68, 0.4);
-      color: #fca5a5;
-      font-size: 0.72rem;
-      padding: 6px 8px;
-    }
     button:active { opacity: 0.85; }
 
     .banner {
       padding: 9px 10px;
       border-radius: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       font-weight: 700;
       text-align: center;
       background: var(--card);
@@ -69,26 +62,23 @@
       font-size: 0.82rem;
       line-height: 1.45;
     }
-    .meta { font-size: 0.7rem; color: var(--muted); font-weight: 400; }
+    .meta { font-size: 0.69rem; color: var(--muted); font-weight: 400; }
 
-    /* スマホ横2列・タブレット/PC横3〜4列 */
+    /* スマホ横2列・PC横4列 */
     .grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 9px;
+      gap: 8px;
     }
-    @media (min-width: 700px) {
-      .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; }
-    }
-    @media (min-width: 900px) {
-      .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    @media (min-width: 720px) {
+      .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
     }
 
     .card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 10px;
+      padding: 9px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -107,29 +97,29 @@
       display: flex;
       flex-direction: column;
       line-height: 1.2;
-      margin-bottom: 6px;
+      margin-bottom: 5px;
     }
-    .pair-en { font-size: 0.96rem; font-weight: 800; letter-spacing: 0.01em; }
-    .pair-jp { font-size: 0.74rem; color: #cbd5e1; font-weight: 600; margin-top: 1px; }
+    .pair-en { font-size: 0.94rem; font-weight: 800; }
+    .pair-jp { font-size: 0.72rem; color: #cbd5e1; font-weight: 600; margin-top: 1px; }
 
     .dir-badge {
       display: block;
       text-align: center;
-      padding: 5px 6px;
+      padding: 5px 4px;
       border-radius: 6px;
       font-size: 0.76rem;
       font-weight: 800;
-      margin-bottom: 7px;
+      margin-bottom: 6px;
     }
     .dir-up {
-      background: rgba(16, 185, 129, 0.2);
+      background: rgba(16, 185, 129, 0.22);
       color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.4);
+      border: 1px solid rgba(16, 185, 129, 0.45);
     }
     .dir-down {
-      background: rgba(239, 68, 68, 0.2);
+      background: rgba(239, 68, 68, 0.22);
       color: #f87171;
-      border: 1px solid rgba(239, 68, 68, 0.4);
+      border: 1px solid rgba(239, 68, 68, 0.45);
     }
     .dir-mix {
       background: rgba(148, 163, 184, 0.14);
@@ -140,54 +130,118 @@
     .rates-box {
       background: var(--card-sub);
       border-radius: 6px;
-      padding: 6px 8px;
-      font-size: 0.73rem;
-      line-height: 1.5;
+      padding: 5px 6px;
+      font-size: 0.69rem;
+      line-height: 1.45;
+      margin-bottom: 6px;
+      color: #cbd5e1;
     }
-    .row-item {
+
+    .oco-box {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .target-row {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 6px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 4px;
     }
-    .label { color: var(--muted); font-size: 0.69rem; }
-    .val { font-weight: 700; }
+    .target-info {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+      min-width: 0;
+    }
+    .target-label {
+      font-size: 0.63rem;
+      font-weight: 700;
+    }
+    .tp-label { color: #34d399; }
+    .sl-label { color: #f87171; }
+    .target-val {
+      font-size: 0.84rem;
+      font-weight: 800;
+      color: #f8fafc;
+      font-variant-numeric: tabular-nums;
+    }
+    .copy-btn {
+      background: #334155;
+      color: #f8fafc;
+      border: none;
+      border-radius: 5px;
+      padding: 5px 7px;
+      font-size: 0.66rem;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .copy-btn.copied {
+      background: #10b981;
+      color: #0f172a;
+    }
+    .wait-msg {
+      text-align: center;
+      font-size: 0.68rem;
+      color: var(--muted);
+      padding: 8px 4px;
+      background: rgba(15, 23, 42, 0.45);
+      border-radius: 6px;
+    }
 
-    .guide {
+    .settings {
       margin-top: 14px;
-      padding: 10px 12px;
+      padding: 10px;
       background: var(--card);
       border-radius: 8px;
-      font-size: 0.75rem;
+      font-size: 0.74rem;
       color: var(--muted);
       line-height: 1.55;
+    }
+    .settings input {
+      background: var(--card-sub);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      width: 54px;
+      padding: 3px 5px;
+      margin: 2px 4px;
+      font-size: 0.74rem;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>📊 日足 200EMA 環境認識 (7通貨)</h1>
+      <h1>📊 日足 200EMA + OCO目安 (8通貨)</h1>
       <div class="header-btns">
         <a href="./1h.html" class="nav-link">⏱ 1時間足へ</a>
-        <button class="clear-btn" onclick="clearOldStorage()">旧データ消去</button>
         <button class="primary" onclick="checkAll()">更新</button>
       </div>
     </header>
 
-    <div id="statusBanner" class="banner">日足200EMAを取得中...</div>
+    <div id="statusBanner" class="banner">日足データとOCO目安を計算中...</div>
 
     <div id="cards" class="grid"></div>
 
-    <div class="guide">
-      <strong>使い方（朝の環境認識ルール）：</strong><br>
-      ・<strong style="color:#34d399;">📈 上目線（買いのみ）</strong>：終値が200EMAより上 ＆ 200EMAが上向き → 1時間足で「買い」だけ狙う<br>
-      ・<strong style="color:#f87171;">📉 下目線（売りのみ）</strong>：終値が200EMAより下 ＆ 200EMAが下向き → 1時間足で「売り」だけ狙う<br>
-      ・<strong style="color:#cbd5e1;">⚠️ 方向迷い中</strong>：価格と200EMAの傾きが逆 → 無理に触らない
+    <div class="settings">
+      <strong>OCO自動計算ルール：</strong>
+      利確倍率 <input id="rrRatio" type="number" step="0.1" value="1.5" />倍
+      ／ 参照日数 <input id="lookbackDays" type="number" min="3" max="15" value="5" />日
+      <button onclick="checkAll()">再計算</button>
+      <div style="margin-top: 4px;">
+        ・<strong>上目線（買い）：</strong>直近5日の最安値の少し下を「損切り」、その1.5倍上を「利確」として算出<br>
+        ・<strong>下目線（売り）：</strong>直近5日の最高値の少し上を「損切り」、その1.5倍下を「利確」として算出
+      </div>
     </div>
   </div>
 
   <script>
-    // 流動性トップ7通貨ペア
     const PAIRS = [
       { code: "EUR/USD", jp: "ユーロ/ドル" },
       { code: "USD/JPY", jp: "ドル/円" },
@@ -195,16 +249,28 @@
       { code: "EUR/JPY", jp: "ユーロ/円" },
       { code: "GBP/JPY", jp: "ポンド/円" },
       { code: "AUD/USD", jp: "豪ドル/ドル" },
-      { code: "AUD/JPY", jp: "豪ドル/円" }
+      { code: "AUD/JPY", jp: "豪ドル/円" },
+      { code: "GBP/AUD", jp: "ポンド/豪ドル" }
     ];
 
-    function clearOldStorage() {
-      if (!confirm("ブラウザに保存されている過去のトレード履歴・古い通貨データをすべて消去しますか？")) return;
-      localStorage.removeItem("qqe_positions");
-      localStorage.removeItem("qqe_history");
-      localStorage.removeItem("qqe_glaz_pairs_v3");
-      localStorage.removeItem("qqe_glaz_pairs_7_v1");
-      alert("過去の保存データをすべて消去しました！");
+    async function copyPrice(btn, priceStr) {
+      try {
+        await navigator.clipboard.writeText(priceStr);
+      } catch (e) {
+        const ta = document.createElement("textarea");
+        ta.value = priceStr;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      const orig = btn.textContent;
+      btn.textContent = "✅ コピー済";
+      btn.classList.add("copied");
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.classList.remove("copied");
+      }, 1600);
     }
 
     function calcEma(values, length) {
@@ -234,7 +300,10 @@
     async function checkAll() {
       const banner = document.getElementById("statusBanner");
       const grid = document.getElementById("cards");
-      banner.textContent = "7通貨の日足200EMAを計算中...";
+      const rrRatio = Number(document.getElementById("rrRatio").value) || 1.5;
+      const lookback = Number(document.getElementById("lookbackDays").value) || 5;
+
+      banner.textContent = "8通貨の日足200EMAとOCO目安を計算中...";
       grid.innerHTML = "";
 
       const results = await Promise.all(PAIRS.map(async (item) => {
@@ -251,20 +320,59 @@
 
           const aboveEma = closeNow > emaNow;
           const emaRising = emaNow >= emaPrev;
-          const decimals = closeNow > 20 ? 2 : 4;
+
+          const isJpy = quote === "JPY";
+          const decimals = isJpy ? 3 : 5;
+          const pipUnit = isJpy ? 0.01 : 0.0001;
+          const buffer = isJpy ? 0.15 : 0.0015;    // 直近安値・高値の15pips外側
+          const minSlDist = isJpy ? 0.40 : 0.0040; // 日足最低40pips幅
+          const maxSlDist = isJpy ? 1.50 : 0.0150; // 日足最大150pips幅
 
           let direction = "mix";
           if (aboveEma && emaRising) direction = "up";
           else if (!aboveEma && !emaRising) direction = "down";
+
+          // 直近N日間の終値ベース安値・高値からOCOラインを算出
+          const recentSlice = closes.slice(-lookback);
+          const recentLow = Math.min(...recentSlice);
+          const recentHigh = Math.max(...recentSlice);
+
+          let slPrice = 0;
+          let tpPrice = 0;
+          let slPips = 0;
+          let tpPips = 0;
+
+          if (direction === "up") {
+            let rawSl = recentLow - buffer;
+            let dist = closeNow - rawSl;
+            if (dist < minSlDist) dist = minSlDist;
+            if (dist > maxSlDist) dist = maxSlDist;
+            slPrice = closeNow - dist;
+            tpPrice = closeNow + dist * rrRatio;
+            slPips = Math.round(dist / pipUnit);
+            tpPips = Math.round((dist * rrRatio) / pipUnit);
+          } else if (direction === "down") {
+            let rawSl = recentHigh + buffer;
+            let dist = rawSl - closeNow;
+            if (dist < minSlDist) dist = minSlDist;
+            if (dist > maxSlDist) dist = maxSlDist;
+            slPrice = closeNow + dist;
+            tpPrice = closeNow - dist * rrRatio;
+            slPips = Math.round(dist / pipUnit);
+            tpPips = Math.round((dist * rrRatio) / pipUnit);
+          }
 
           return {
             ...item,
             lastDate: dates[last],
             close: closeNow.toFixed(decimals),
             ema200: emaNow.toFixed(decimals),
-            aboveEma,
             emaRising,
-            direction
+            direction,
+            slPrice: slPrice.toFixed(decimals),
+            tpPrice: tpPrice.toFixed(decimals),
+            slPips,
+            tpPips
           };
         } catch (err) {
           return { ...item, error: true };
@@ -281,13 +389,13 @@
 
       const valid = results.find(r => !r.error);
       const dateStr = valid ? `最新確定日足: ${valid.lastDate}` : "";
-      const upList = results.filter(r => r.direction === "up").map(r => r.jp);
-      const downList = results.filter(r => r.direction === "down").map(r => r.jp);
+      const upList = results.filter(r => r.direction === "up");
+      const downList = results.filter(r => r.direction === "down");
 
       banner.innerHTML = `
-        <span style="color:#34d399;">📈 上目線: ${upList.length}通貨</span> ／ 
-        <span style="color:#f87171;">📉 下目線: ${downList.length}通貨</span><br>
-        <span class="meta">${dateStr}</span>
+        <span style="color:#34d399;">📈 上目線(買い): ${upList.length}通貨</span> ／ 
+        <span style="color:#f87171;">📉 下目線(売り): ${downList.length}通貨</span><br>
+        <span class="meta">${dateStr}（API制限なし・無料）</span>
       `;
 
       for (const r of results) {
@@ -304,12 +412,37 @@
           `;
         } else {
           let badgeHtml = "";
+          let ocoHtml = "";
+
           if (r.direction === "up") {
-            badgeHtml = `<div class="dir-badge dir-up">📈 上目線（買いのみ）</div>`;
+            badgeHtml = `<div class="dir-badge dir-up">📈 上目線（押し目買い）</div>`;
           } else if (r.direction === "down") {
-            badgeHtml = `<div class="dir-badge dir-down">📉 下目線（売りのみ）</div>`;
+            badgeHtml = `<div class="dir-badge dir-down">📉 下目線（戻り売り）</div>`;
           } else {
             badgeHtml = `<div class="dir-badge dir-mix">⚠️ 方向迷い中</div>`;
+          }
+
+          if (r.direction === "up" || r.direction === "down") {
+            ocoHtml = `
+              <div class="oco-box">
+                <div class="target-row">
+                  <div class="target-info">
+                    <span class="target-label tp-label">🎯 利確 (+${r.tpPips}p)</span>
+                    <span class="target-val">${r.tpPrice}</span>
+                  </div>
+                  <button class="copy-btn" onclick="copyPrice(this, '${r.tpPrice}')">コピー</button>
+                </div>
+                <div class="target-row">
+                  <div class="target-info">
+                    <span class="target-label sl-label">🛑 損切り (-${r.slPips}p)</span>
+                    <span class="target-val">${r.slPrice}</span>
+                  </div>
+                  <button class="copy-btn" onclick="copyPrice(this, '${r.slPrice}')">コピー</button>
+                </div>
+              </div>
+            `;
+          } else {
+            ocoHtml = `<div class="wait-msg">200EMAと価格の向きが不一致のため見送り</div>`;
           }
 
           card.innerHTML = `
@@ -319,17 +452,12 @@
                 <span class="pair-jp">${r.jp}</span>
               </div>
               ${badgeHtml}
-            </div>
-            <div class="rates-box">
-              <div class="row-item">
-                <span class="label">終値</span>
-                <span class="val">${r.close}</span>
-              </div>
-              <div class="row-item">
-                <span class="label">200EMA</span>
-                <span class="val">${r.ema200} (${r.emaRising ? "↗" : "↘"})</span>
+              <div class="rates-box">
+                基準値: <strong>${r.close}</strong><br>
+                200EMA: <strong>${r.ema200}</strong> (${r.emaRising ? "↗" : "↘"})
               </div>
             </div>
+            ${ocoHtml}
           `;
         }
         grid.appendChild(card);
